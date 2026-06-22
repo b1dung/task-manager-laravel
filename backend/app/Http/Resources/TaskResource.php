@@ -31,6 +31,7 @@ class TaskResource extends JsonResource
             'parentTaskId' => $this->parent_task_id,
             'taskNumber' => $this->task_number,
             'labels' => LabelResource::collection($this->whenLoaded('labels')),
+            'subtasks' => TaskResource::collection($this->whenLoaded('subtasks')),
             'subtaskCount' => $this->whenLoaded('subtasks', fn () => $this->subtasks->count()),
             'doneSubtaskCount' => $this->whenLoaded('subtasks', fn () => $this->subtasks->where('status', 'done')->count()),
             'subtasksPreview' => $this->whenLoaded('subtasks', fn () => $this->subtasks->map(fn ($s) => [

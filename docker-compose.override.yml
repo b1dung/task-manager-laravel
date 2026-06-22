@@ -1,0 +1,28 @@
+# Dev-only override (Docker Compose auto-merges this with docker-compose.yml).
+#
+# Live-mounts the backend source into the app containers so PHP edits take effect
+# immediately — php-fpm re-reads files per request, so NO image rebuild is needed.
+#
+# vendor/, bootstrap/cache/ and storage/ are deliberately kept from the image
+# (overlay/named volumes) so the host's missing vendor / generated package cache
+# don't shadow and break autoload & package discovery.
+#
+# For a clean production-style run, delete or rename this file, then rebuild:
+#   docker compose -f docker-compose.yml up -d --build
+
+x-dev-mounts: &dev-mounts
+  volumes:
+    - ./backend:/var/www/html              # live source from host
+    - /var/www/html/vendor                 # keep image's vendor + composer autoload
+    - /var/www/html/bootstrap/cache        # keep image's packages.php/services.php (writable)
+    - app_storage:/var/www/html/storage    # keep persistent storage
+
+services:
+  app:
+    <<: *dev-mounts
+  queue:
+    <<: *dev-mounts
+  scheduler:
+    <<: *dev-mounts
+  reverb:
+    <<: *dev-mounts

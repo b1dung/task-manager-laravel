@@ -47,27 +47,22 @@ class DatabaseSeeder extends Seeder
         }
 
         $adminRole = Role::where('key', 'admin')->first();
-        $pmRole = Role::where('key', 'pm')->first();
-        $memberRole = Role::where('key', 'member')->first();
 
-        // ── Seed accounts (domain @taskboard.dev, password: password123) ────────
         $users = [
-            ['email' => 'admin@taskboard.dev', 'full_name' => 'Admin', 'role' => 'admin', 'role_id' => $adminRole?->id],
-            ['email' => 'manager@taskboard.dev', 'full_name' => 'Manager', 'role' => 'manager', 'role_id' => $pmRole?->id],
-            ['email' => 'member@taskboard.dev', 'full_name' => 'Member', 'role' => 'member', 'role_id' => $memberRole?->id],
+            ['email' => 'b1dung@gmail.com', 'full_name' => 'Bui Manh Dung', 'role' => 'owner', 'role_id' => $adminRole?->id],
         ];
 
         foreach ($users as $u) {
             User::updateOrCreate(
                 ['email' => $u['email']],
                 [
-                    'password_hash' => Hash::make('password123'),
+                    'password_hash' => Hash::make('@admin123'),
                     'full_name' => $u['full_name'],
                     'role' => $u['role'],
                     'role_id' => $u['role_id'],
                     'is_active' => true,
                     'language' => 'en',
-                    'appearance' => 'midnight',
+                    'appearance' => 'light',
                     'timezone' => 'Asia/Ho_Chi_Minh',
                     'email_verified_at' => now(),
                     'two_factor_enabled' => false,

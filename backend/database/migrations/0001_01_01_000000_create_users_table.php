@@ -19,7 +19,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->uuid('role_id')->nullable()->index(); // FK -> roles added later
             $table->string('language', 5)->default('en');
-            $table->string('appearance', 16)->default('midnight');
+            $table->string('appearance', 16)->default('light');
             $table->string('timezone', 64)->default('Asia/Ho_Chi_Minh');
             $table->timestampTz('email_verified_at')->nullable();
             $table->boolean('two_factor_enabled')->default(false);

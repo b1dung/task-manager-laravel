@@ -1,0 +1,26 @@
+# Shared-hosting routing for Taskboard (Laravel API + React SPA in one docroot).
+# Order: real files served directly → backend paths to Laravel → everything else = React SPA.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Pass the Authorization header through to PHP (Bearer tokens)
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # 1) Serve existing files / directories as-is (React assets, favicon, robots.txt ...)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # 2) Laravel backend routes (API, file uploads, health probe) → front controller
+    RewriteRule ^(api|uploads|up)(/.*)?$ index.php [L]
+
+    # 3) React SPA fallback for all other routes
+    RewriteRule ^ index.html [L]
+</IfModule>
+
+# Block access to dotfiles just in case
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>

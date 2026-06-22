@@ -1,0 +1,100 @@
+# Full containerized stack for crm-comcom-laravel.
+# Everything runs in containers: MySQL + Redis + Laravel (php-fpm) + Nginx +
+# Reverb + Queue + Scheduler, and a one-shot React build.
+#
+#   docker compose up -d --build
+#   → browse http://localhost:8080   (admin@taskboard.dev / password123)
+#
+# (For a lighter SQLite-only API on :8000, use backend/docker-compose.dev.yml.)
+
+x-app: &app
+  build:
+    context: ./backend
+    dockerfile: Dockerfile
+  image: crm-comcom-laravel-app:latest
+  env_file: ./docker/.env.app
+  restart: unless-stopped
+  volumes:
+    - app_storage:/var/www/html/storage
+  depends_on:
+    mysql: { condition: service_healthy }
+    redis: { condition: service_started }
+
+services:
+  mysql:
+    image: mysql:8
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: taskboard
+      MYSQL_USER: taskboard
+      MYSQL_PASSWORD: taskboard
+      MYSQL_ROOT_PASSWORD: root
+    ports: ["3307:3306"]            # host 3307 → avoid clashing with local MySQL
+    volumes: [mysql_data:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-ptaskboard"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: [redis_data:/data]
+
+  # Laravel API (php-fpm, port 9000 — fronted by nginx).
+  app:
+    <<: *app
+
+  # One-shot: run migrations + seed once MySQL is healthy, then exit.
+  migrate:
+    <<: *app
+    restart: "no"
+    command: ["sh", "-c", "php artisan migrate --force && php artisan db:seed --force"]
+    depends_on:
+      mysql: { condition: service_healthy }
+
+  queue:
+    <<: *app
+    command: ["php", "artisan", "queue:work", "--tries=3", "--max-time=3600"]
+
+  scheduler:
+    <<: *app
+    command: ["sh", "-c", "while true; do php artisan schedule:run --no-interaction; sleep 60; done"]
+
+  reverb:
+    <<: *app
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+
+  # One-shot: build the React app into frontend/dist for nginx to serve.
+  fe-build:
+    image: node:20-alpine
+    working_dir: /work/frontend
+    environment:
+      VITE_API_URL: /api/v1
+      VITE_REVERB_APP_KEY: ytubefcrdytfrvlnl3fe
+      VITE_REVERB_HOST: localhost
+      VITE_REVERB_PORT: "8080"
+      VITE_REVERB_SCHEME: http
+    volumes: [.:/work]
+    command: ["sh", "-lc", "npm ci --no-audit --no-fund && npm run build"]
+    restart: "no"
+
+  # Single public entrypoint: serves the React build + proxies API & websocket.
+  web:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports: ["8080:80"]
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      app: { condition: service_started }
+      reverb: { condition: service_started }
+      fe-build: { condition: service_completed_successfully }
+
+volumes:
+  mysql_data:
+  redis_data:
+  app_storage:

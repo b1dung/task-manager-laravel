@@ -1,0 +1,27 @@
+# Dev-only stack to run the Laravel API locally for FE smoke-checks.
+# Uses SQLite (pdo_sqlite ships in the PHP image; pdo_mysql does not), so no DB
+# container is needed. Cache/session=array, queue=sync, broadcast=log → zero
+# extra services. Just the API on :8000 for the React FE to talk to.
+#   docker compose -f docker-compose.dev.yml up -d
+services:
+  app:
+    image: laravelsail/php84-composer:latest
+    container_name: taskboard_laravel_app
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+      # Override .env inside the container only (host .env stays mysql/prod-like).
+      # `artisan serve` does not forward compose `environment:` to request workers,
+      # so the dev config must live in the .env the app actually reads.
+      - ./.env.docker:/var/www/html/.env
+      # Raise PHP upload limits to 250 MB for task attachments.
+      - ./docker/php-upload.ini:/usr/local/etc/php/conf.d/zz-upload.ini
+    ports:
+      - "8000:8000"
+    # migrate (not migrate:fresh) + idempotent seed → restarts keep your data.
+    command: >
+      bash -lc "touch database/database.sqlite &&
+                php artisan config:clear &&
+                php artisan migrate --force &&
+                php artisan db:seed --force &&
+                php artisan serve --host=0.0.0.0 --port=8000"

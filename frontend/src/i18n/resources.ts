@@ -4,7 +4,7 @@ export const vi = {
     common: { save: 'Lưu', cancel: 'Hủy', create: 'Tạo', edit: 'Chỉnh sửa', delete: 'Xóa', close: 'Đóng', confirm: 'Xác nhận', search: 'Tìm kiếm', loading: 'Đang tải…', all: 'Tất cả', none: 'Không có', optional: 'tùy chọn', system: 'Hệ thống', member: 'Thành viên', understood: 'Đã hiểu', justNow: 'vừa xong' },
     nav: {
       overview: 'Tổng quan', work: 'Công việc', insights: 'Phân tích', collaboration: 'Cộng tác', administration: 'Quản trị',
-      summary: 'Tổng hợp', myTasks: 'Công việc của tôi', board: 'Bảng công việc', calendar: 'Lịch', attachments: 'Tệp đính kèm', archived: 'Đã lưu trữ', reports: 'Báo cáo', developerReport: 'Báo cáo lập trình viên', team: 'Nhóm', notifications: 'Thông báo', activity: 'Hoạt động', projectManagement: 'Quản lý dự án', userManagement: 'Quản lý người dùng', rolesPermissions: 'Vai trò & quyền hạn', settings: 'Cài đặt', projects: 'Dự án', selectProject: 'Chọn dự án', myProjects: 'Dự án của tôi', createProject: 'Tạo dự án mới', noProjects: 'Chưa có dự án nào', collapse: 'Thu gọn thanh bên', expand: 'Mở rộng thanh bên', logout: 'Đăng xuất',
+      summary: 'Tổng hợp', list: 'Danh sách', myTasks: 'Công việc của tôi', board: 'Bảng công việc', calendar: 'Lịch', attachments: 'Tệp đính kèm', archived: 'Đã lưu trữ', reports: 'Báo cáo', developerReport: 'Báo cáo lập trình viên', team: 'Nhóm', notifications: 'Thông báo', activity: 'Hoạt động', projectManagement: 'Quản lý dự án', userManagement: 'Quản lý người dùng', rolesPermissions: 'Vai trò & quyền hạn', settings: 'Cài đặt', siteSettings: 'Cài đặt', projects: 'Dự án', selectProject: 'Chọn dự án', myProjects: 'Dự án của tôi', createProject: 'Tạo dự án mới', noProjects: 'Chưa có dự án nào', collapse: 'Thu gọn thanh bên', expand: 'Mở rộng thanh bên', logout: 'Đăng xuất',
     },
     auth: {
       login: 'Đăng nhập', register: 'Đăng ký', welcomeBack: 'Chào mừng trở lại!', email: 'Email', password: 'Mật khẩu', fullName: 'Họ tên', noAccount: 'Chưa có tài khoản?', hasAccount: 'Đã có tài khoản?', invalidCredentials: 'Email hoặc mật khẩu không đúng', invalidEmail: 'Email không hợp lệ', passwordMin6: 'Mật khẩu ít nhất 6 ký tự', passwordMin8: 'Mật khẩu ít nhất 8 ký tự', nameMin2: 'Tên ít nhất 2 ký tự', pendingTitle: 'Tài khoản đang chờ duyệt', pendingMessage: 'Tài khoản của bạn đã được tạo nhưng đang chờ quản trị viên duyệt và phân quyền.', pendingHelp: 'Bạn sẽ đăng nhập được ngay sau khi được chấp nhận. Vui lòng liên hệ quản trị viên nếu cần gấp.', registerFailed: 'Đăng ký thất bại. Email có thể đã được sử dụng.', invalidInvite: 'Lời mời không hợp lệ', invalidInviteMessage: 'Liên kết mời đã hết hạn hoặc không còn hiệu lực. Vui lòng liên hệ quản trị viên để được mời lại.', backToLogin: 'Về trang đăng nhập', pendingApproval: 'Đang chờ duyệt', completeInvite: 'Hoàn tất lời mời', setPassword: 'Đặt mật khẩu để kích hoạt tài khoản', createAccount: 'Tạo tài khoản mới', invitedAs: 'Bạn được mời với vai trò {{role}}. Tài khoản sẽ hoạt động ngay sau khi đăng ký.', activate: 'Kích hoạt tài khoản', approvalNotice: 'Tài khoản mới cần được quản trị viên duyệt trước khi đăng nhập.', signingIn: 'Đang đăng nhập…',
@@ -12,7 +12,7 @@ export const vi = {
     account: {
       title: 'Tài khoản', subtitle: 'Quản lý hồ sơ, bảo mật và tùy chọn cá nhân', profile: 'Trang cá nhân', settings: 'Cài đặt tài khoản', information: 'Thông tin tài khoản', changeAvatar: 'Thay đổi ảnh đại diện', name: 'Họ và tên', role: 'Vai trò', saveChanges: 'Lưu thay đổi', updated: 'Đã cập nhật thông tin', saveFailed: 'Lưu thất bại', passwordSection: 'Đổi mật khẩu', currentPassword: 'Mật khẩu hiện tại', newPassword: 'Mật khẩu mới', confirmPassword: 'Xác nhận mật khẩu mới', passwordMismatch: 'Mật khẩu xác nhận không khớp', updatePassword: 'Cập nhật mật khẩu', passwordUpdated: 'Đã đổi mật khẩu', language: 'Ngôn ngữ', appearance: 'Giao diện', timezone: 'Múi giờ', displayTimezone: 'Múi giờ hiển thị', currentTime: 'Giờ hiện tại', timezoneSaved: 'Đã cập nhật múi giờ', timezoneFailed: 'Lưu múi giờ thất bại', utcNotice: 'Dữ liệu thời gian vẫn được lưu dưới dạng UTC.', saveTimezone: 'Lưu múi giờ', light: 'Sáng', dark: 'Tối', classic: 'Cổ điển', notification: 'Thông báo', logoutTitle: 'Đăng xuất?', logoutMessage: 'Bạn có chắc muốn kết thúc phiên làm việc hiện tại?', logout: 'Đăng xuất', avatarTypeError: 'Chỉ hỗ trợ ảnh JPG, PNG, WEBP, GIF', avatarTooLarge: 'Ảnh quá lớn (tối đa {{max}}MB)', avatarUpdated: 'Cập nhật ảnh đại diện thành công', avatarUploadFailed: 'Upload ảnh thất bại', passwordFailed: 'Đổi mật khẩu thất bại', namePlaceholder: 'Nhập tên đầy đủ', confirmPlaceholder: 'Nhập lại mật khẩu mới',
     },
-    notifications: { title: 'Thông báo', newCount: '{{count}} mới', markAll: 'Đọc tất cả', empty: 'Không có thông báo nào', viewAll: 'Xem tất cả thông báo', unread: 'Chưa đọc' },
+    notifications: { title: 'Thông báo', newCount: '{{count}} mới', markAll: 'Đọc tất cả', empty: 'Không có thông báo nào', viewAll: 'Xem tất cả thông báo', view: 'Xem', unread: 'Chưa đọc' },
     projects: { title: 'Dự án', create: 'Tạo dự án', created: 'Dự án đã được tạo', createFailed: 'Tạo dự án thất bại', empty: 'Chưa có dự án nào', emptyCreate: 'Tạo dự án đầu tiên để bắt đầu quản lý công việc', emptyMember: 'Bạn chưa được thêm vào dự án nào', createTitle: 'Tạo dự án mới', name: 'Tên dự án', namePlaceholder: 'VD: Thiết kế lại website', description: 'Mô tả (tùy chọn)', descriptionPlaceholder: 'Mô tả ngắn về dự án…' },
     taskDetail: {
       updateFailed: 'Cập nhật thất bại',
@@ -27,7 +27,7 @@ export const vi = {
       createSubtaskFailed: 'Tạo subtask thất bại', subtaskPlaceholder: 'Tên subtask...',
       linked: 'Đã liên kết task', linkFailed: 'Liên kết thất bại', unlinkFailed: 'Xóa liên kết thất bại', searchTask: 'Tìm kiếm task...',
       noActivity: 'Chưa có hoạt động nào', sendFailed: 'Gửi thất bại', noComments: 'Chưa có comment nào', replyingTo: 'Trả lời {{name}}', noHistory: 'Chưa có lịch sử',
-      noLabels: 'Chưa có label nào', labelPlaceholder: 'Tên label...', createLabel: 'Tạo label mới',
+      noLabels: 'Chưa có label nào', labelPlaceholder: 'Tên label...', createLabel: 'Tạo label mới', company: 'Công ty',
       logTimeFailed: 'Log time thất bại', startAfterDue: 'Start date không được sau due date', commandCopied: 'Đã copy lệnh',
     },
     board: {
@@ -83,6 +83,7 @@ export const vi = {
       thisWeek: 'Tuần này', thisMonth: 'Tháng này', threeMonths: '3 tháng',
       targetTasks: 'Task mục tiêu', actualDone: 'Đã hoàn thành', completionRate: 'Tỷ lệ hoàn thành',
       weeklyCompleted: 'Hoàn thành task (tuần này)', productivity30: 'Năng suất (30 ngày)', completionByStatus: 'Tỷ lệ hoàn thành theo trạng thái', hoursEstVsLogged: 'Giờ làm việc (Ước tính vs Đã log)',
+      exportCsv: 'Export Excel', exportChoose: 'Chọn chế độ export (khoảng thời gian tới hôm nay):', exportWeek: 'Tuần này (Week)', exportMonth: 'Tháng này (Month)', exportQuarter: 'Quý này (Quarter)', exportYear: 'Năm nay (Year)', exportCustom: 'Tùy chọn (từ ngày bắt đầu → hôm nay)', exportStartDate: 'Ngày bắt đầu', exportAction: 'Export', exportSuccess: 'Đã export Excel', exportFailed: 'Export thất bại', exportPickStart: 'Vui lòng chọn ngày bắt đầu',
     },
     archived: {
       system: 'Hệ thống', restored: 'Đã khôi phục "{{title}}"', restoredProject: 'Đã khôi phục dự án "{{name}}"',
@@ -139,7 +140,7 @@ export const vi = {
       overdue: 'Quá hạn', today: 'Hôm nay', thisWeek: 'Tuần này', noDueDate: 'Không có hạn',
     },
     settings: {
-      saved: 'Đã lưu thay đổi', saveFailed: 'Lưu thất bại', archived: 'Đã lưu trữ dự án', archiveFailed: 'Lưu trữ thất bại', deleted: 'Đã xóa dự án', deleteFailed: 'Xóa thất bại',
+      saved: 'Đã lưu thay đổi', saveFailed: 'Lưu thất bại', title: 'Cài đặt', general: 'Chung', generalDesc: 'Cấu hình chung áp dụng cho toàn site.', timezone: 'Múi giờ', timezoneDesc: 'Dùng chung cho hiển thị ngày giờ trên web và file export.', currentTime: 'Giờ hiện tại', save: 'Lưu', archived: 'Đã lưu trữ dự án', archiveFailed: 'Lưu trữ thất bại', deleted: 'Đã xóa dự án', deleteFailed: 'Xóa thất bại',
       generalInfo: 'Thông tin chung', projectName: 'Tên dự án', slug: 'Mã (slug)', description: 'Mô tả', deadline: 'Hạn chót', saveChanges: 'Lưu thay đổi',
       workflowTeam: 'Workflow & Đội ngũ', workflowTeamDesc: 'Quản lý cột bảng và thành viên ở trang riêng', manageColumns: 'Quản lý cột (Board)', members: 'Thành viên',
       dangerZone: 'Vùng nguy hiểm',
@@ -176,10 +177,10 @@ export const en = {
   translation: {
     app: { name: 'TaskBoard' },
     common: { save: 'Save', cancel: 'Cancel', create: 'Create', edit: 'Edit', delete: 'Delete', close: 'Close', confirm: 'Confirm', search: 'Search', loading: 'Loading…', all: 'All', none: 'None', optional: 'optional', system: 'System', member: 'Member', understood: 'Got it', justNow: 'just now' },
-    nav: { overview: 'Overview', work: 'Work', insights: 'Insights', collaboration: 'Collaboration', administration: 'Administration', summary: 'Summary', myTasks: 'My Tasks', board: 'Board', calendar: 'Calendar', attachments: 'Attachments', archived: 'Archived', reports: 'Reports', developerReport: 'Developer Report', team: 'Team', notifications: 'Notifications', activity: 'Activity', projectManagement: 'Project Management', userManagement: 'User Management', rolesPermissions: 'Roles & Permissions', settings: 'Settings', projects: 'Projects', selectProject: 'Select project', myProjects: 'My Projects', createProject: 'Create project', noProjects: 'No projects yet', collapse: 'Collapse sidebar', expand: 'Expand sidebar', logout: 'Log out' },
+    nav: { overview: 'Overview', work: 'Work', insights: 'Insights', collaboration: 'Collaboration', administration: 'Administration', summary: 'Summary', list: 'List', myTasks: 'My Tasks', board: 'Board', calendar: 'Calendar', attachments: 'Attachments', archived: 'Archived', reports: 'Reports', developerReport: 'Developer Report', team: 'Team', notifications: 'Notifications', activity: 'Activity', projectManagement: 'Project Management', userManagement: 'User Management', rolesPermissions: 'Roles & Permissions', settings: 'Settings', siteSettings: 'Settings', projects: 'Projects', selectProject: 'Select project', myProjects: 'My Projects', createProject: 'Create project', noProjects: 'No projects yet', collapse: 'Collapse sidebar', expand: 'Expand sidebar', logout: 'Log out' },
     auth: { login: 'Log in', register: 'Sign up', welcomeBack: 'Welcome back!', email: 'Email', password: 'Password', fullName: 'Full name', noAccount: "Don't have an account?", hasAccount: 'Already have an account?', invalidCredentials: 'Incorrect email or password', invalidEmail: 'Invalid email address', passwordMin6: 'Password must be at least 6 characters', passwordMin8: 'Password must be at least 8 characters', nameMin2: 'Name must be at least 2 characters', pendingTitle: 'Account pending approval', pendingMessage: 'Your account has been created and is awaiting administrator approval and permissions.', pendingHelp: 'You can log in as soon as it is approved. Contact an administrator if this is urgent.', registerFailed: 'Registration failed. This email may already be in use.', invalidInvite: 'Invalid invitation', invalidInviteMessage: 'This invitation has expired or is no longer valid. Contact an administrator for a new invitation.', backToLogin: 'Back to login', pendingApproval: 'Pending approval', completeInvite: 'Complete invitation', setPassword: 'Set a password to activate your account', createAccount: 'Create a new account', invitedAs: 'You were invited as {{role}}. Your account will be active immediately after registration.', activate: 'Activate account', approvalNotice: 'New accounts require administrator approval before login.', signingIn: 'Signing in…' },
     account: { title: 'Account', subtitle: 'Manage your profile, security, and personal preferences', profile: 'Profile', settings: 'Account settings', information: 'Account information', changeAvatar: 'Change avatar', name: 'Full name', role: 'Role', saveChanges: 'Save changes', updated: 'Profile updated', saveFailed: 'Could not save changes', passwordSection: 'Change password', currentPassword: 'Current password', newPassword: 'New password', confirmPassword: 'Confirm new password', passwordMismatch: 'Passwords do not match', updatePassword: 'Update password', passwordUpdated: 'Password updated', language: 'Language', appearance: 'Appearance', timezone: 'Timezone', displayTimezone: 'Display timezone', currentTime: 'Current time', timezoneSaved: 'Timezone updated', timezoneFailed: 'Could not save timezone', utcNotice: 'Datetime values remain stored in UTC.', saveTimezone: 'Save timezone', light: 'Light', dark: 'Dark', classic: 'Classic', notification: 'Notifications', logoutTitle: 'Log out?', logoutMessage: 'Are you sure you want to end your current session?', logout: 'Log out', avatarTypeError: 'Only JPG, PNG, WEBP, GIF images are supported', avatarTooLarge: 'Image too large (max {{max}}MB)', avatarUpdated: 'Avatar updated', avatarUploadFailed: 'Image upload failed', passwordFailed: 'Could not change password', namePlaceholder: 'Enter your full name', confirmPlaceholder: 'Re-enter new password' },
-    notifications: { title: 'Notifications', newCount: '{{count}} new', markAll: 'Mark all as read', empty: 'No notifications', viewAll: 'View all notifications', unread: 'Unread' },
+    notifications: { title: 'Notifications', newCount: '{{count}} new', markAll: 'Mark all as read', empty: 'No notifications', viewAll: 'View all notifications', view: 'View', unread: 'Unread' },
     projects: { title: 'Projects', create: 'Create project', created: 'Project created', createFailed: 'Could not create project', empty: 'No projects yet', emptyCreate: 'Create your first project to start managing work', emptyMember: 'You have not been added to a project', createTitle: 'Create project', name: 'Project name', namePlaceholder: 'e.g. Website Redesign', description: 'Description (optional)', descriptionPlaceholder: 'Brief project description…' },
     taskDetail: {
       updateFailed: 'Update failed',
@@ -194,7 +195,7 @@ export const en = {
       createSubtaskFailed: 'Could not create subtask', subtaskPlaceholder: 'Subtask name...',
       linked: 'Task linked', linkFailed: 'Could not link', unlinkFailed: 'Could not unlink', searchTask: 'Search tasks...',
       noActivity: 'No activity yet', sendFailed: 'Could not send', noComments: 'No comments yet', replyingTo: 'Replying to {{name}}', noHistory: 'No history',
-      noLabels: 'No labels yet', labelPlaceholder: 'Label name...', createLabel: 'Create label',
+      noLabels: 'No labels yet', labelPlaceholder: 'Label name...', createLabel: 'Create label', company: 'Company',
       logTimeFailed: 'Could not log time', startAfterDue: 'Start date cannot be after due date', commandCopied: 'Command copied',
     },
     board: {
@@ -250,6 +251,7 @@ export const en = {
       thisWeek: 'This week', thisMonth: 'This month', threeMonths: '3 months',
       targetTasks: 'Target Tasks', actualDone: 'Actual Done', completionRate: 'Completion Rate',
       weeklyCompleted: 'Completed tasks (this week)', productivity30: 'Productivity (30 days)', completionByStatus: 'Completion rate by status', hoursEstVsLogged: 'Working hours (Estimated vs Logged)',
+      exportCsv: 'Export Excel', exportChoose: 'Choose export range (up to today):', exportWeek: 'This week', exportMonth: 'This month', exportQuarter: 'This quarter', exportYear: 'This year', exportCustom: 'Custom (from start date → today)', exportStartDate: 'Start date', exportAction: 'Export', exportSuccess: 'Excel exported', exportFailed: 'Export failed', exportPickStart: 'Please choose a start date',
     },
     archived: {
       system: 'System', restored: 'Restored "{{title}}"', restoredProject: 'Restored project "{{name}}"',
@@ -306,7 +308,7 @@ export const en = {
       overdue: 'Overdue', today: 'Today', thisWeek: 'This week', noDueDate: 'No due date',
     },
     settings: {
-      saved: 'Changes saved', saveFailed: 'Could not save', archived: 'Project archived', archiveFailed: 'Could not archive', deleted: 'Project deleted', deleteFailed: 'Could not delete',
+      saved: 'Changes saved', saveFailed: 'Could not save', title: 'Settings', general: 'General', generalDesc: 'Site-wide configuration applied everywhere.', timezone: 'Timezone', timezoneDesc: 'Used for all date/time display across the web app and exports.', currentTime: 'Current time', save: 'Save', archived: 'Project archived', archiveFailed: 'Could not archive', deleted: 'Project deleted', deleteFailed: 'Could not delete',
       generalInfo: 'General information', projectName: 'Project name', slug: 'Slug', description: 'Description', deadline: 'Deadline', saveChanges: 'Save changes',
       workflowTeam: 'Workflow & Team', workflowTeamDesc: 'Manage board columns and members on their own pages', manageColumns: 'Manage columns (Board)', members: 'Members',
       dangerZone: 'Danger zone',
@@ -325,7 +327,7 @@ export const en = {
       noColumns: 'This project has no columns yet', titlePlaceholder: 'e.g. Homepage redesign', due: 'Due',
     },
     activity: {
-      exportCsv: 'Export CSV', allUsers: 'All users', allActions: 'All actions', empty: 'No activity yet', prev: '← Prev', next: 'Next →', page: 'Page {{page}}',
+      exportCsv: 'Export Excel', allUsers: 'All users', allActions: 'All actions', empty: 'No activity yet', prev: '← Prev', next: 'Next →', page: 'Page {{page}}',
       period: { week: 'Week', month: 'Month', quarter: 'Quarter', year: 'Year' },
       actions: { created: 'created', updated: 'updated', deleted: 'deleted', moved: 'moved', commented: 'commented', assigned: 'assigned', status_changed: 'status changed' },
       entities: { task: 'task', comment: 'comment', column: 'column', member: 'member', sprint: 'sprint', project: 'project' },
@@ -343,7 +345,7 @@ export const ja = {
   translation: {
     app: { name: 'TaskBoard' },
     common: { save: '保存', cancel: 'キャンセル', create: '作成', edit: '編集', delete: '削除', close: '閉じる', confirm: '確認', search: '検索', loading: '読み込み中…', all: 'すべて', none: 'なし', optional: '任意', system: 'システム', member: 'メンバー', understood: '了解', justNow: 'たった今' },
-    nav: { overview: '概要', work: '作業', insights: '分析', collaboration: 'コラボレーション', administration: '管理', summary: 'サマリー', myTasks: '自分のタスク', board: 'ボード', calendar: 'カレンダー', attachments: '添付ファイル', archived: 'アーカイブ', reports: 'レポート', developerReport: '開発者レポート', team: 'チーム', notifications: '通知', activity: 'アクティビティ', projectManagement: 'プロジェクト管理', userManagement: 'ユーザー管理', rolesPermissions: 'ロールと権限', settings: '設定', projects: 'プロジェクト', selectProject: 'プロジェクトを選択', myProjects: '自分のプロジェクト', createProject: 'プロジェクトを作成', noProjects: 'プロジェクトはありません', collapse: 'サイドバーを折りたたむ', expand: 'サイドバーを展開', logout: 'ログアウト' },
+    nav: { overview: '概要', work: '作業', insights: '分析', collaboration: 'コラボレーション', administration: '管理', summary: 'サマリー', myTasks: '自分のタスク', board: 'ボード', calendar: 'カレンダー', attachments: '添付ファイル', archived: 'アーカイブ', reports: 'レポート', developerReport: '開発者レポート', team: 'チーム', notifications: '通知', activity: 'アクティビティ', projectManagement: 'プロジェクト管理', userManagement: 'ユーザー管理', rolesPermissions: 'ロールと権限', settings: '設定', siteSettings: '設定', projects: 'プロジェクト', selectProject: 'プロジェクトを選択', myProjects: '自分のプロジェクト', createProject: 'プロジェクトを作成', noProjects: 'プロジェクトはありません', collapse: 'サイドバーを折りたたむ', expand: 'サイドバーを展開', logout: 'ログアウト' },
     auth: { login: 'ログイン', register: '新規登録', welcomeBack: 'おかえりなさい！', email: 'メールアドレス', password: 'パスワード', fullName: '氏名', noAccount: 'アカウントをお持ちでないですか？', hasAccount: 'すでにアカウントをお持ちですか？', invalidCredentials: 'メールアドレスまたはパスワードが正しくありません', invalidEmail: '有効なメールアドレスを入力してください', passwordMin6: 'パスワードは6文字以上で入力してください', passwordMin8: 'パスワードは8文字以上で入力してください', nameMin2: '氏名は2文字以上で入力してください', pendingTitle: '承認待ちのアカウント', pendingMessage: 'アカウントは作成済みで、管理者による承認と権限設定を待っています。', pendingHelp: '承認後すぐにログインできます。お急ぎの場合は管理者へお問い合わせください。', registerFailed: '登録できませんでした。このメールアドレスは使用済みの可能性があります。', invalidInvite: '無効な招待', invalidInviteMessage: 'この招待は期限切れ、または無効です。管理者へ再招待を依頼してください。', backToLogin: 'ログインへ戻る', pendingApproval: '承認待ち', completeInvite: '招待を完了', setPassword: 'アカウントを有効にするパスワードを設定', createAccount: '新しいアカウントを作成', invitedAs: '{{role}}として招待されています。登録後すぐにアカウントが有効になります。', activate: 'アカウントを有効化', approvalNotice: '新規アカウントはログイン前に管理者の承認が必要です。', signingIn: 'ログイン中…' },
     account: { title: 'アカウント', subtitle: 'プロフィール、セキュリティ、個人設定を管理します', profile: 'プロフィール', settings: 'アカウント設定', information: 'アカウント情報', changeAvatar: 'アバターを変更', name: '氏名', role: 'ロール', saveChanges: '変更を保存', updated: 'プロフィールを更新しました', saveFailed: '変更を保存できませんでした', passwordSection: 'パスワード変更', currentPassword: '現在のパスワード', newPassword: '新しいパスワード', confirmPassword: '新しいパスワードを確認', passwordMismatch: 'パスワードが一致しません', updatePassword: 'パスワードを更新', passwordUpdated: 'パスワードを更新しました', language: '言語', appearance: '外観', timezone: 'タイムゾーン', displayTimezone: '表示タイムゾーン', currentTime: '現在時刻', timezoneSaved: 'タイムゾーンを更新しました', timezoneFailed: 'タイムゾーンを保存できませんでした', utcNotice: '日時データはUTCで保存されます。', saveTimezone: 'タイムゾーンを保存', light: 'ライト', dark: 'ダーク', classic: 'クラシック', notification: '通知', logoutTitle: 'ログアウトしますか？', logoutMessage: '現在のセッションを終了してもよろしいですか？', logout: 'ログアウト', avatarTypeError: 'JPG、PNG、WEBP、GIF画像のみ対応しています', avatarTooLarge: '画像が大きすぎます（最大{{max}}MB）', avatarUpdated: 'アバターを更新しました', avatarUploadFailed: '画像のアップロードに失敗しました', passwordFailed: 'パスワードを変更できませんでした', namePlaceholder: 'フルネームを入力', confirmPlaceholder: '新しいパスワードを再入力' },
     notifications: { title: '通知', newCount: '新着{{count}}件', markAll: 'すべて既読にする', empty: '通知はありません', viewAll: 'すべての通知を見る', unread: '未読' },
@@ -361,7 +363,7 @@ export const ja = {
       createSubtaskFailed: 'サブタスクを作成できませんでした', subtaskPlaceholder: 'サブタスク名...',
       linked: 'タスクをリンクしました', linkFailed: 'リンクに失敗しました', unlinkFailed: 'リンク解除に失敗しました', searchTask: 'タスクを検索...',
       noActivity: 'アクティビティはまだありません', sendFailed: '送信に失敗しました', noComments: 'コメントはまだありません', replyingTo: '{{name}}に返信', noHistory: '履歴がありません',
-      noLabels: 'ラベルがありません', labelPlaceholder: 'ラベル名...', createLabel: 'ラベルを作成',
+      noLabels: 'ラベルがありません', labelPlaceholder: 'ラベル名...', createLabel: 'ラベルを作成', company: '会社',
       logTimeFailed: '時間を記録できませんでした', startAfterDue: '開始日は期限より後にできません', commandCopied: 'コマンドをコピーしました',
     },
     board: {
@@ -417,6 +419,7 @@ export const ja = {
       thisWeek: '今週', thisMonth: '今月', threeMonths: '3か月',
       targetTasks: '目標タスク', actualDone: '実績完了', completionRate: '完了率',
       weeklyCompleted: '完了タスク（今週）', productivity30: '生産性（30日）', completionByStatus: 'ステータス別完了率', hoursEstVsLogged: '作業時間（見積 vs 実績）',
+      exportCsv: 'Excelエクスポート', exportChoose: 'エクスポート範囲を選択（本日まで）：', exportWeek: '今週', exportMonth: '今月', exportQuarter: '今四半期', exportYear: '今年', exportCustom: 'カスタム（開始日 → 本日）', exportStartDate: '開始日', exportAction: 'エクスポート', exportSuccess: 'Excelをエクスポートしました', exportFailed: 'エクスポートに失敗しました', exportPickStart: '開始日を選択してください',
     },
     archived: {
       system: 'システム', restored: '「{{title}}」を復元しました', restoredProject: 'プロジェクト「{{name}}」を復元しました',
@@ -473,7 +476,7 @@ export const ja = {
       overdue: '期限切れ', today: '今日', thisWeek: '今週', noDueDate: '期限なし',
     },
     settings: {
-      saved: '変更を保存しました', saveFailed: '保存できませんでした', archived: 'プロジェクトをアーカイブしました', archiveFailed: 'アーカイブできませんでした', deleted: 'プロジェクトを削除しました', deleteFailed: '削除できませんでした',
+      saved: '変更を保存しました', saveFailed: '保存できませんでした', title: '設定', general: '一般', generalDesc: 'サイト全体に適用される設定。', timezone: 'タイムゾーン', timezoneDesc: 'Webアプリとエクスポートの日時表示に共通で使用されます。', currentTime: '現在時刻', save: '保存', archived: 'プロジェクトをアーカイブしました', archiveFailed: 'アーカイブできませんでした', deleted: 'プロジェクトを削除しました', deleteFailed: '削除できませんでした',
       generalInfo: '基本情報', projectName: 'プロジェクト名', slug: 'スラッグ', description: '説明', deadline: '締切', saveChanges: '変更を保存',
       workflowTeam: 'ワークフローとチーム', workflowTeamDesc: 'ボードのカラムとメンバーは専用ページで管理します', manageColumns: 'カラムを管理（ボード）', members: 'メンバー',
       dangerZone: '危険な操作',

@@ -12,7 +12,7 @@ COPY . .
 RUN rm -f bootstrap/cache/*.php \
     && composer dump-autoload --optimize --no-dev
 
-FROM php:8.4-fpm-alpine AS app
+FROM php:8.3-fpm-alpine AS app
 RUN apk add --no-cache libpng-dev libzip-dev oniguruma-dev icu-dev $PHPIZE_DEPS \
     && docker-php-ext-install pdo_mysql gd zip bcmath pcntl intl \
     && pecl install redis && docker-php-ext-enable redis \

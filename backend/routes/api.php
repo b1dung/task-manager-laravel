@@ -10,6 +10,8 @@ use App\Http\Controllers\ExportController;
 use App\Http\Controllers\InviteController;
 use App\Http\Controllers\LabelController;
 use App\Http\Controllers\ManageProjectController;
+use App\Http\Controllers\RequesterController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\MyTasksController;
 use App\Http\Controllers\NotificationController;
@@ -89,6 +91,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('notifications/read-all', [NotificationController::class, 'markAllRead']);
     Route::patch('notifications/{id}/read', [NotificationController::class, 'markRead']);
 
+    // ── Site settings (read: any user; write: manage_settings) ──
+    Route::get('settings', [SettingController::class, 'index']);
+    Route::put('settings', [SettingController::class, 'update'])->middleware('permission:manage_settings');
+
     // ── Users ──
     Route::get('users', [UsersController::class, 'index']);
     Route::post('users', [UsersController::class, 'store'])->middleware('permission:manage_users');
@@ -133,6 +139,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
         // ── Queued exports (Excel tasks / monthly PDF) ──
         Route::middleware('permission:view_reports')->group(function () {
+            Route::get('export/tasks/xlsx', [ExportController::class, 'tasksXlsx']);
             Route::post('export/tasks/excel', [ExportController::class, 'tasksExcel']);
             Route::post('export/reports/monthly/pdf', [ExportController::class, 'monthlyReportPdf']);
             Route::get('export/files/{fileName}', [ExportController::class, 'download'])->where('fileName', '.*');
@@ -175,6 +182,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('labels', [LabelController::class, 'store']);
         Route::patch('labels/{id}', [LabelController::class, 'update']);
         Route::delete('labels/{id}', [LabelController::class, 'destroy']);
+
+        // ── Requesters (label-like; who requested the task) ──
+        Route::get('requesters', [RequesterController::class, 'index']);
+        Route::post('requesters', [RequesterController::class, 'store']);
+        Route::patch('requesters/{id}', [RequesterController::class, 'update']);
+        Route::delete('requesters/{id}', [RequesterController::class, 'destroy']);
 
         // ── Project-wide attachments ──
         Route::get('attachments', [AttachmentController::class, 'listForProject']);

@@ -56,9 +56,9 @@ class ExportTasksExcel implements ShouldQueue
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Tasks');
 
-        $headers = ['Title', 'Type', 'Status', 'Priority', 'Assignee', 'Reporter', 'Due date', 'Story points', 'Estimated hours', 'Logged hours'];
+        $headers = ['Title', 'Type', 'Status', 'Priority', 'Assignee', 'Reporter', 'Due date', 'Estimated hours', 'Logged hours'];
         $sheet->fromArray($headers, null, 'A1');
-        $sheet->getStyle('A1:J1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:I1')->getFont()->setBold(true);
 
         $row = 2;
         foreach ($tasks as $task) {
@@ -70,7 +70,6 @@ class ExportTasksExcel implements ShouldQueue
                 $task->assignee?->full_name ?? $task->assignee?->email ?? '',
                 $task->reporter?->full_name ?? $task->reporter?->email ?? '',
                 $task->due_date ?? '',
-                $task->story_points ?? '',
                 $task->estimated_hours ?? '',
                 $task->logged_hours ?? '',
             ], null, "A{$row}");

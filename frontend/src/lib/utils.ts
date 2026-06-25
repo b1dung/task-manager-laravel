@@ -1,19 +1,19 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { DEFAULT_TIMEZONE, formatZonedDate, type UserTimezone } from './timezones'
+import { getSiteTimezone, formatZonedDate, type UserTimezone } from './timezones'
 import i18n from '@/i18n'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatDate(date: string | Date | null | undefined, timezone: UserTimezone = DEFAULT_TIMEZONE): string {
+export function formatDate(date: string | Date | null | undefined, timezone: UserTimezone = getSiteTimezone()): string {
   if (!date) return '—'
   const locale = i18n.resolvedLanguage === 'ja' ? 'ja-JP' : i18n.resolvedLanguage === 'en' ? 'en-US' : 'vi-VN'
   return formatZonedDate(date, timezone, locale)
 }
 
-export function formatRelative(date: string | Date, timezone: UserTimezone = DEFAULT_TIMEZONE): string {
+export function formatRelative(date: string | Date, timezone: UserTimezone = getSiteTimezone()): string {
   const now = new Date()
   const d = new Date(date)
   const diff = now.getTime() - d.getTime()

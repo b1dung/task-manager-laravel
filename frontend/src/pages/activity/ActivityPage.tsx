@@ -1,3 +1,4 @@
+import { useSiteTimezone } from '@/hooks/useSiteTimezone'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
@@ -9,8 +10,7 @@ import { membersApi } from '@/api/members'
 import { useFilterStore } from '@/stores/useFilterStore'
 import { Button, EmptyState, Skeleton } from '@/components/ui'
 import { formatRelative } from '@/lib/utils'
-import { useAuthStore } from '@/stores/useAuthStore'
-import { DEFAULT_TIMEZONE, formatZonedDateTime } from '@/lib/timezones'
+import { formatZonedDateTime } from '@/lib/timezones'
 
 const ACTION_COLORS: Record<string, string> = {
   created: 'bg-success',
@@ -30,7 +30,7 @@ const PERIOD_DAYS: Record<Exclude<Period, 'custom'>, number> = { week: 7, month:
 
 export function ActivityPage() {
   const { t } = useTranslation()
-  const timezone = useAuthStore((state) => state.user?.timezone ?? DEFAULT_TIMEZONE)
+  const timezone = useSiteTimezone()
   const { projectId = '' } = useParams<{ projectId: string }>()
   const { activity, setActivityFilter, clearActivityFilters } = useFilterStore()
   const [page, setPage] = useState(1)

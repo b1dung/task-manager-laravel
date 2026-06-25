@@ -1,3 +1,4 @@
+import { useSiteTimezone } from '@/hooks/useSiteTimezone'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -19,7 +20,9 @@ import { notificationsApi, notificationLink, type Notification } from '@/api/not
 import { Avatar, Button, Skeleton } from '@/components/ui'
 import { formatRelative, cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/useAuthStore'
-import { DEFAULT_TIMEZONE, formatZonedDateTime } from '@/lib/timezones'
+import { useUserSocket } from '@/hooks/useSocket'
+import { useToast } from '@/hooks/useToast'
+import { formatZonedDateTime } from '@/lib/timezones'
 import { useTranslation } from 'react-i18next'
 
 const TYPE_ICON: Record<string, ReactNode> = {
@@ -36,11 +39,14 @@ const TYPE_ICON: Record<string, ReactNode> = {
 
 export function NotificationsDropdown() {
   const { t } = useTranslation()
-  const timezone = useAuthStore((state) => state.user?.timezone ?? DEFAULT_TIMEZONE)
+  const timezone = useSiteTimezone()
+  const userId = useAuthStore((state) => state.user?.id)
   const qc = useQueryClient()
   const navigate = useNavigate()
+  const toast = useToast()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const userSocket = useUserSocket(userId)
 
   // Unread badge — polled even while the dropdown is closed.
   const { data: unreadData } = useQuery({
@@ -76,6 +82,21 @@ export function NotificationsDropdown() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
+
+  // Realtime: refresh badge + list and pop a toast when a new notification arrives.
+  useEffect(() => {
+    if (!userSocket) return
+    const onNew = (p?: { entityType?: string; entityId?: string; projectId?: string; message?: string }) => {
+      qc.invalidateQueries({ queryKey: ['notifications'] })
+      if (!p?.message) return
+      const link = p.entityType === 'task' && p.projectId && p.entityId
+        ? `/projects/${p.projectId}/tasks?selectedIssue=${p.entityId}`
+        : null
+      toast.info(p.message, link ? { action: { label: t('notifications.view'), onClick: () => navigate(link) } } : undefined)
+    }
+    userSocket.on('notification:new', onNew)
+    return () => userSocket.off('notification:new', onNew)
+  }, [userSocket, qc, toast, navigate, t])
 
   const handleClick = (n: Notification) => {
     if (!n.readAt) markRead(n.id)

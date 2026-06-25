@@ -81,7 +81,6 @@ export interface Task {
   dueDate: string | null
   estimatedHours: number | null
   loggedHours: number | null
-  storyPoints: number | null
   position: number
   parentTaskId: string | null
   createdAt: string

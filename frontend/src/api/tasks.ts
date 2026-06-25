@@ -14,6 +14,12 @@ export interface Label {
   color: string
 }
 
+export interface Requester {
+  id: string
+  name: string
+  color: string
+}
+
 export interface SubtaskPreview {
   id: string
   title: string
@@ -21,6 +27,9 @@ export interface SubtaskPreview {
   taskNumber: number | null
   assigneeId: string | null
   assignee: TaskUser | null
+  columnId: string | null
+  columnName: string | null
+  columnColor: string | null
   parentTaskId: string | null
 }
 
@@ -35,18 +44,22 @@ export interface Task {
   priority: string
   status: string
   assigneeId: string | null
+  qaAssigneeId: string | null
   reporterId: string
   assignee: TaskUser | null
+  qaAssignee: TaskUser | null
   reporter: TaskUser
   dueDate: string | null
   estimatedHours: number | null
   loggedHours: number | null
-  storyPoints: number | null
+  qaEstimatedHours: number | null
+  qaLoggedHours: number | null
   position: number
   parentTaskId: string | null
   parentTask?: Task | null
   taskNumber?: number | null
   labels: Label[]
+  requesters: Requester[]
   subtasks?: Task[]
   subtaskCount?: number
   doneSubtaskCount?: number
@@ -70,8 +83,8 @@ export interface CreateTaskDto {
   sprintId?: string
   dueDate?: string
   estimatedHours?: number
-  storyPoints?: number
   labelIds?: string[]
+  requesterIds?: string[]
   parentTaskId?: string
 }
 
@@ -83,17 +96,20 @@ export interface UpdateTaskDto {
   status?: string
   columnId?: string
   assigneeId?: string | null
+  qaAssigneeId?: string | null
   sprintId?: string | null
   parentTaskId?: string | null
   dueDate?: string | null
   estimatedHours?: number
   loggedHours?: number
-  storyPoints?: number
+  qaEstimatedHours?: number
+  qaLoggedHours?: number
   labelIds?: string[]
+  requesterIds?: string[]
 }
 
 export const tasksApi = {
-  list: (projectId: string, filters?: BoardFilters & { page?: number; limit?: number; includeSubtasks?: boolean }) =>
+  list: (projectId: string, filters?: BoardFilters & { page?: number; limit?: number; includeSubtasks?: boolean; columnId?: string }) =>
     apiClient
       .get<PaginatedTasks & { success: true }>(`/projects/${projectId}/tasks`, { params: filters })
       .then((r) => r.data),
@@ -112,6 +128,6 @@ export const tasksApi = {
     apiClient.patch<{ success: true; data: Task }>(`/projects/${projectId}/tasks/${id}/unarchive`).then((r) => r.data.data),
   move: (projectId: string, id: string, dto: { columnId: string; position: number }) =>
     apiClient.patch<{ success: true; data: Task }>(`/projects/${projectId}/tasks/${id}/move`, dto).then((r) => r.data.data),
-  logTime: (projectId: string, id: string, dto: { hours: number; loggedDate?: string; description?: string }) =>
+  logTime: (projectId: string, id: string, dto: { hours: number; loggedDate?: string; description?: string; isQa?: boolean }) =>
     apiClient.post<{ success: true; data: Task }>(`/projects/${projectId}/tasks/${id}/log-time`, dto).then((r) => r.data.data),
 }

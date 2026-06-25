@@ -3,7 +3,7 @@ import type { ReportFilters } from '@/stores/useFilterStore'
 
 export interface DailyPoint { date: string; completed: number }
 export interface MonthlyKpi { from: string; to: string; target: number; actual: number; completionRate: number }
-export interface CompletionSlice { status: string; count: number }
+export interface CompletionSlice { columnId: string; name: string; color: string | null; count: number }
 export interface HoursPoint { userId: string; estimatedHours: number; loggedHours: number }
 
 export interface SummaryKpis {
@@ -14,7 +14,8 @@ export interface SummaryKpis {
   overdue: number
   blocked: number
 }
-export interface StatusSlice { status: string; count: number }
+/** Status Overview is grouped by board column (name + color from the DB). */
+export interface StatusSlice { columnId: string; name: string; color: string | null; count: number }
 export interface PrioritySlice { priority: string; count: number }
 export interface TypeSlice { type: string; count: number }
 export interface WorkloadEntry {
@@ -68,13 +69,15 @@ export interface DevReportKpis {
   avgCompletionTime: number
   productivityScore: number
 }
-export interface NamePoint { name: string; value: number }
+export interface NamePoint { name: string; value: number; color?: string | null }
 export interface TaskDetailRow {
   id: string
   taskNumber: number | null
   title: string
   priority: string
   status: string
+  columnName: string | null
+  columnColor: string | null
   estimatedHours: number | null
   loggedHours: number | null
   dueDate: string | null
@@ -96,6 +99,7 @@ export interface DevReportParams {
   from?: string
   to?: string
   userId?: string
+  sprintId?: string
   priority?: string
   type?: string
 }
@@ -115,4 +119,6 @@ export const reportsApi = {
     apiClient.get<{ success: true; data: CompletionSlice[] }>(`/projects/${projectId}/reports/completion-rate`, { params: filters }).then((r) => r.data.data),
   workingHours: (projectId: string, filters?: ReportFilters) =>
     apiClient.get<{ success: true; data: HoursPoint[] }>(`/projects/${projectId}/reports/working-hours`, { params: filters }).then((r) => r.data.data),
+  exportTasksXlsx: (projectId: string, params: { from?: string; to?: string; baseUrl?: string }) =>
+    apiClient.get<Blob>(`/projects/${projectId}/export/tasks/xlsx`, { params, responseType: 'blob' }).then((r) => r.data),
 }

@@ -165,7 +165,7 @@ export function UserManagementPage() {
                         </select>
                       ) : (
                         <span className="text-fg">
-                          {u.roleId ? roleById.get(u.roleId)?.name ?? '—' : t('users.defaultRole', { role: u.role })}
+                          {u.roleId ? (roleById.get(u.roleId)?.name ?? u.roleName ?? '—') : (u.roleName ?? t('users.defaultRole', { role: u.role }))}
                         </span>
                       )}
                     </td>

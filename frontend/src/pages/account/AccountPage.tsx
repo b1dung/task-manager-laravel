@@ -1,16 +1,15 @@
-import { useEffect, useState, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Archive, Camera, Clock3, Loader2, User, Mail, Shield, Lock, KeyRound, MonitorSmartphone } from 'lucide-react'
+import { Archive, Camera, Loader2, User, Mail, Shield, Lock, KeyRound, MonitorSmartphone } from 'lucide-react'
 import { usersApi } from '@/api/users'
 import { useAuthStore } from '@/stores/useAuthStore'
-import { Avatar, Button, Select } from '@/components/ui'
+import { Avatar, Button } from '@/components/ui'
 import { useToast } from '@/hooks/useToast'
-import { currentTimePreview, DEFAULT_TIMEZONE, TIMEZONE_LABELS, TIMEZONE_OPTIONS, type UserTimezone } from '@/lib/timezones'
 import { useTranslation } from 'react-i18next'
 import { authApi } from '@/api/auth'
 
 const ROLE_LABEL: Record<string, string> = {
-  admin: 'Admin', manager: 'Manager', member: 'Member', viewer: 'Viewer',
+  owner: 'Owner', admin: 'Admin', pm: 'PM', team_lead: 'Team Lead', member: 'Member', client: 'Client',
 }
 
 const inputCls =
@@ -35,13 +34,6 @@ export function AccountPage() {
   // ── Account information ─────────────────────────────────────────────────────
   const [fullName, setFullName] = useState(user?.fullName ?? '')
   const [avatarUploading, setAvatarUploading] = useState(false)
-  const [timezone, setTimezone] = useState<UserTimezone>(user?.timezone ?? DEFAULT_TIMEZONE)
-  const [previewNow, setPreviewNow] = useState(() => new Date())
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setPreviewNow(new Date()), 30_000)
-    return () => window.clearInterval(timer)
-  }, [])
 
   const { mutate: saveProfile, isPending: savingProfile } = useMutation({
     mutationFn: () => usersApi.update(user!.id, { fullName: fullName.trim() }),
@@ -54,15 +46,6 @@ export function AccountPage() {
 
   const infoDirty = !!user && fullName.trim() !== user.fullName
   const infoValid = fullName.trim().length >= 2
-
-  const { mutate: saveTimezone, isPending: savingTimezone } = useMutation({
-    mutationFn: () => usersApi.update(user!.id, { timezone }),
-    onSuccess: (updated) => {
-      setUser({ ...user!, timezone: updated.timezone })
-      toast.success(t('account.timezoneSaved'))
-    },
-    onError: (err) => toast.error(apiErrorMessage(err, t('account.timezoneFailed'))),
-  })
 
   const MAX_SIZE_MB = 2
   const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -215,7 +198,7 @@ export function AccountPage() {
             <div className="space-y-1.5">
               <label className={labelCls}><Shield className="w-3.5 h-3.5" /> {t('account.role')}</label>
               <span className="inline-flex items-center rounded-[4px] border border-border bg-bg-subtle px-2.5 py-1 text-xs font-medium text-fg-muted">
-                {ROLE_LABEL[user.role] ?? user.role}
+                {user.roleName ?? ROLE_LABEL[user.role] ?? user.role}
               </span>
             </div>
 
@@ -252,39 +235,6 @@ export function AccountPage() {
               <Button variant="ghost" size="sm" disabled={!pwDirty || changingPw} onClick={resetPw}>{t('common.cancel')}</Button>
               <Button variant="primary" size="sm" loading={changingPw} disabled={!pwValid} onClick={() => changePassword()}>{t('account.updatePassword')}</Button>
             </div>
-          </div>
-        </div>
-
-        {/* ── Block 3: Timezone ── */}
-        <div id="timezone" className="rounded-xl border border-border bg-bg-surface lg:col-span-2">
-          <div className="flex items-center gap-2 px-4 py-3 sm:px-6 border-b border-border">
-            <Clock3 className="w-4 h-4 text-fg-muted" />
-            <h2 className="text-sm font-semibold text-fg">{t('account.timezone')}</h2>
-          </div>
-          <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-end sm:p-6">
-            <div className="min-w-0 flex-1 space-y-2">
-              <Select
-                id="account-timezone"
-                label={t('account.displayTimezone')}
-                value={timezone}
-                onChange={(event) => setTimezone(event.target.value as UserTimezone)}
-                options={TIMEZONE_OPTIONS.map((value) => ({ value, label: TIMEZONE_LABELS[value] }))}
-              />
-              <p className="text-xs text-fg-muted" aria-live="polite">
-                {currentTimePreview(timezone, previewNow, t('account.currentTime'))}
-              </p>
-              <p className="text-xs text-fg-subtle">{t('account.utcNotice')}</p>
-            </div>
-            <Button
-              variant="primary"
-              size="sm"
-              loading={savingTimezone}
-              disabled={timezone === (user.timezone ?? DEFAULT_TIMEZONE)}
-              onClick={() => saveTimezone()}
-              className="w-full sm:w-auto"
-            >
-              {t('account.saveTimezone')}
-            </Button>
           </div>
         </div>
 

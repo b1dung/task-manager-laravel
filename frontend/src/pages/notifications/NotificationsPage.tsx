@@ -1,3 +1,4 @@
+import { useSiteTimezone } from '@/hooks/useSiteTimezone'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -5,15 +6,14 @@ import { Bell, BellOff, CheckCheck } from 'lucide-react'
 import { notificationsApi, notificationLink, type Notification } from '@/api/notifications'
 import { Avatar, Button, EmptyState, Skeleton } from '@/components/ui'
 import { formatRelative, cn } from '@/lib/utils'
-import { useAuthStore } from '@/stores/useAuthStore'
-import { DEFAULT_TIMEZONE, formatZonedDateTime } from '@/lib/timezones'
+import { formatZonedDateTime } from '@/lib/timezones'
 import { useTranslation } from 'react-i18next'
 
 type Filter = 'all' | 'unread'
 
 export function NotificationsPage() {
   const { t } = useTranslation()
-  const timezone = useAuthStore((state) => state.user?.timezone ?? DEFAULT_TIMEZONE)
+  const timezone = useSiteTimezone()
   const qc = useQueryClient()
   const navigate = useNavigate()
   const [filter, setFilter] = useState<Filter>('all')

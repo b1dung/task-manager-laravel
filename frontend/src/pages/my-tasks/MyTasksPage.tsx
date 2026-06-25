@@ -1,3 +1,4 @@
+import { useSiteTimezone } from '@/hooks/useSiteTimezone'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -12,8 +13,6 @@ import { useToast } from '@/hooks/useToast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { formatDate, cn } from '@/lib/utils'
 import { TaskDetailModal } from '@/pages/board/components/TaskDetailModal'
-import { useAuthStore } from '@/stores/useAuthStore'
-import { DEFAULT_TIMEZONE } from '@/lib/timezones'
 
 type Tab = 'assigned' | 'reported' | 'watching'
 
@@ -39,7 +38,7 @@ function getProjectKey(name: string): string {
 
 export function MyTasksPage() {
   const { t } = useTranslation()
-  const timezone = useAuthStore((state) => state.user?.timezone ?? DEFAULT_TIMEZONE)
+  const timezone = useSiteTimezone()
   const qc = useQueryClient()
   const toast = useToast()
   const [tab, setTab] = useState<Tab>('assigned')
@@ -157,6 +156,10 @@ export function MyTasksPage() {
                 {items.map((task) => {
                   const pr = PRIORITY_ICON[task.priority] ?? PRIORITY_ICON.medium
                   const st = STATUS_CFG[task.status]
+                  // Status column = the task's actual board column (name + colour),
+                  // falling back to the status palette when not available.
+                  const colColor = task.columnColor
+                  const statusLabel = task.columnName ?? (st ? t(`status.${task.status}`) : task.status)
                   const prLabel = t(`priority.${task.priority}`)
                   const overdue = task.dueDate && task.dueDate < new Date().toISOString().slice(0, 10) && task.status !== 'done'
                   return (
@@ -169,7 +172,14 @@ export function MyTasksPage() {
                         </button>
                       </td>
                       <td className="px-4 py-2.5 text-fg-muted text-xs truncate max-w-[160px]">{task.project?.name ?? projectName.get(task.projectId) ?? '—'}</td>
-                      <td className="px-4 py-2.5"><span className={cn('inline-flex rounded border px-2 py-0.5 text-xs font-medium', st?.cls ?? 'text-fg-muted bg-bg-subtle border-border')}>{st ? t(`status.${task.status}`) : task.status}</span></td>
+                      <td className="px-4 py-2.5">
+                        <span
+                          className={cn('inline-flex rounded border px-2 py-0.5 text-xs font-medium', !colColor && (st?.cls ?? 'text-fg-muted bg-bg-subtle border-border'))}
+                          style={colColor ? { backgroundColor: `${colColor}1A`, color: colColor, borderColor: `${colColor}55` } : undefined}
+                        >
+                          {statusLabel}
+                        </span>
+                      </td>
                       <td className="px-4 py-2.5"><span className="inline-flex items-center gap-1.5 text-xs text-fg-muted"><img src={pr.svg} width={14} height={14} alt={prLabel} className="shrink-0" />{prLabel}</span></td>
                       <td className={cn('px-4 py-2.5 text-xs whitespace-nowrap', overdue ? 'text-danger font-medium' : 'text-fg-muted')}>{task.dueDate ? formatDate(task.dueDate, timezone) : '—'}</td>
                       <td className="px-4 py-2.5 text-right whitespace-nowrap">

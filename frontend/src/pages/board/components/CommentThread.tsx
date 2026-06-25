@@ -108,7 +108,7 @@ export function CommentThread({ projectId, taskId }: Props) {
               if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && content.trim()) addComment()
             }}
             placeholder={t('board.commentPlaceholder')}
-            rows={2}
+            rows={4}
             className="w-full bg-bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-fg resize-none focus:outline-none focus:ring-2 focus:ring-accent placeholder:text-fg-subtle"
           />
           <div className="flex justify-end">

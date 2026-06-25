@@ -14,13 +14,14 @@ class AppUserResource extends JsonResource
             'fullName' => $this->full_name,
             'email' => $this->email,
             'avatarUrl' => $this->avatar_url,
-            'role' => $this->role,
+            // Authoritative role from the assigned RBAC role; legacy `role` enum is a fallback.
+            'role' => $this->assignedRole?->key ?? $this->role,
+            'roleName' => $this->assignedRole?->name,
             'roleId' => $this->role_id,
             'isActive' => (bool) $this->is_active,
             'createdAt' => $this->created_at?->toIso8601String(),
             'language' => $this->language,
             'appearance' => $this->appearance,
-            'timezone' => $this->timezone,
         ];
     }
 }

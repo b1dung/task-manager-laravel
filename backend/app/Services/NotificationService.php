@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\UserEvent;
 use App\Models\Notification;
 use App\Models\ProjectMember;
 use App\Models\User;
@@ -32,6 +33,10 @@ class NotificationService
         ])->all();
         if ($rows) {
             Notification::insert($rows);
+            // Realtime: ping each recipient's private channel so the bell updates live.
+            // Chunked because Pusher allows up to 100 channels per broadcast.
+            $payload = ['type' => $type, 'entityType' => $entityType, 'entityId' => $entityId, 'projectId' => $projectId, 'message' => $message];
+            $activeIds->chunk(100)->each(fn ($chunk) => UserEvent::dispatch($chunk->values()->all(), 'notification:new', $payload));
         }
     }
 
@@ -48,6 +53,10 @@ class NotificationService
             'message' => $message,
             'read_at' => null,
             'created_at' => now(),
+        ]);
+
+        UserEvent::dispatch($recipientId, 'notification:new', [
+            'type' => $type, 'entityType' => $entityType, 'entityId' => $entityId, 'message' => $message,
         ]);
     }
 }

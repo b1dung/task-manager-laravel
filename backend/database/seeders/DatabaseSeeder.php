@@ -14,12 +14,12 @@ class DatabaseSeeder extends Seeder
         // ── System roles (ported from the existing NestJS roles table) ──────────
         $roles = [
             ['key' => 'owner', 'name' => 'Owner', 'sort_order' => 0, 'permissions' => [
-                'manage_users', 'manage_roles', 'create_project', 'edit_project', 'delete_project',
+                'manage_users', 'manage_roles', 'manage_settings', 'create_project', 'edit_project', 'delete_project',
                 'create_sprint', 'assign_tasks', 'create_task', 'update_own_task', 'approve_task',
                 'view_reports', 'billing_access', 'invite_client', 'view_pages', 'view_all_projects',
             ]],
             ['key' => 'admin', 'name' => 'Admin', 'sort_order' => 1, 'permissions' => [
-                'manage_users', 'manage_roles', 'create_project', 'edit_project', 'delete_project',
+                'manage_users', 'manage_roles', 'manage_settings', 'create_project', 'edit_project', 'delete_project',
                 'create_sprint', 'assign_tasks', 'create_task', 'update_own_task', 'approve_task',
                 'view_reports', 'invite_client', 'view_pages',
             ]],
@@ -46,10 +46,15 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        $adminRole = Role::where('key', 'admin')->first();
+        $ownerRole = Role::where('key', 'owner')->firstOrFail();
 
         $users = [
-            ['email' => 'b1dung@gmail.com', 'full_name' => 'Bui Manh Dung', 'role' => 'owner', 'role_id' => $adminRole?->id],
+            [
+                'email' => 'b1dung@sougo-career-vietnam.com',
+                'full_name' => 'Bui Manh Dung',
+                'role' => 'owner',
+                'role_id' => $ownerRole->id,
+            ],
         ];
 
         foreach ($users as $u) {
@@ -63,7 +68,6 @@ class DatabaseSeeder extends Seeder
                     'is_active' => true,
                     'language' => 'en',
                     'appearance' => 'light',
-                    'timezone' => 'Asia/Ho_Chi_Minh',
                     'email_verified_at' => now(),
                     'two_factor_enabled' => false,
                 ],

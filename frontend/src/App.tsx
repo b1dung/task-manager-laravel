@@ -24,8 +24,10 @@ const ProjectsPage = lazyNamed(() => import('@/pages/projects/ProjectsPage'), 'P
 const ManageProjectsPage = lazyNamed(() => import('@/pages/projects/ManageProjectsPage'), 'ManageProjectsPage')
 const MyTasksPage = lazyNamed(() => import('@/pages/my-tasks/MyTasksPage'), 'MyTasksPage')
 const SettingsPage = lazyNamed(() => import('@/pages/settings/SettingsPage'), 'SettingsPage')
+const GeneralSettingsPage = lazyNamed(() => import('@/pages/site-settings/GeneralSettingsPage'), 'GeneralSettingsPage')
 const BoardPage = lazyNamed(() => import('@/pages/board/BoardPage'), 'BoardPage')
 const SummaryPage = lazyNamed(() => import('@/pages/summary/SummaryPage'), 'SummaryPage')
+const ListPage = lazyNamed(() => import('@/pages/list/ListPage'), 'ListPage')
 const CalendarPage = lazyNamed(() => import('@/pages/calendar/CalendarPage'), 'CalendarPage')
 const TeamPage = lazyNamed(() => import('@/pages/team/TeamPage'), 'TeamPage')
 const RolesPermissionsPage = lazyNamed(() => import('@/pages/roles/RolesPermissionsPage'), 'RolesPermissionsPage')
@@ -117,6 +119,7 @@ export default function App() {
           <Route path="/my-tasks" element={<MyTasksPage />} />
           <Route path="/projects/:projectId/tasks" element={<BoardPage />} />
           <Route path="/projects/:projectId/summary" element={<SummaryPage />} />
+          <Route path="/projects/:projectId/list" element={<ListPage />} />
           <Route path="/projects/:projectId/calendar" element={<CalendarPage />} />
           <Route path="/projects/:projectId/team" element={<TeamPage />} />
           <Route path="/projects/:projectId/reports" element={<RequirePermission permission="view_reports"><ReportsPage /></RequirePermission>} />
@@ -139,6 +142,14 @@ export default function App() {
             element={
               <RequirePermission permission="manage_users">
                 <UserManagementPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <RequirePermission permission="manage_settings">
+                <GeneralSettingsPage />
               </RequirePermission>
             }
           />

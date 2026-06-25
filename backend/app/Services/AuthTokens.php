@@ -9,17 +9,18 @@ use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Cookie;
 
 /**
- * Issues short-lived access tokens (Sanctum, 15m) and rotating refresh tokens
- * (random string, SHA-256 hashed in DB, delivered as an httpOnly cookie, 7d).
- * Mirrors the NestJS access(15m) + refresh-rotation(7d) flow.
+ * Issues short-lived access tokens (Sanctum, 60m) and rotating refresh tokens
+ * (random string, SHA-256 hashed in DB, delivered as an httpOnly cookie, 30d).
+ * The refresh token is the effective login-session lifetime (shown on the
+ * account page); the 60m access token is silently refreshed in the background.
  */
 class AuthTokens
 {
     public const REFRESH_COOKIE = 'refresh_token';
 
-    private const ACCESS_TTL_MIN = 15;
+    private const ACCESS_TTL_MIN = 60;
 
-    private const REFRESH_TTL_MIN = 60 * 24 * 7; // 7 days
+    private const REFRESH_TTL_MIN = 60 * 24 * 30; // 30 days
 
     public function __construct(private readonly CookieJar $cookie) {}
 

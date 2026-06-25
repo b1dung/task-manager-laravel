@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react'
 import {createPortal} from 'react-dom'
-import {Search, X, SlidersHorizontal} from 'lucide-react'
+import {Search, X, SlidersHorizontal, UserX} from 'lucide-react'
 import {useQuery} from '@tanstack/react-query'
 import {membersApi} from '@/api/members'
 import {labelsApi} from '@/api/labels'
@@ -182,6 +182,20 @@ export function FilterBar({projectId}: FilterBarProps) {
                             {members.length > 0 && (
                                 <FilterSection label={t('filter.assignee')}>
                                     <div className="flex flex-wrap gap-2">
+                                        <button
+                                            onClick={() => toggleMulti('assigneeId', 'unassigned')}
+                                            className={cn(
+                                                'flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs transition-colors',
+                                                board.assigneeId?.includes('unassigned')
+                                                    ? 'border-accent bg-accent/10 text-fg'
+                                                    : 'border-border text-fg-muted hover:border-border-bright hover:text-fg',
+                                            )}
+                                        >
+                                            <span className="flex items-center justify-center w-[26px] h-[26px] rounded-full bg-bg-subtle text-fg-subtle">
+                                                <UserX className="w-3.5 h-3.5"/>
+                                            </span>
+                                            <span>Unassigned</span>
+                                        </button>
                                         {members.map((m) => {
                                             const active = board.assigneeId?.includes(m.userId)
                                             return (

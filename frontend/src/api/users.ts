@@ -6,12 +6,13 @@ export interface AppUser {
   email: string
   avatarUrl: string | null
   role: string
+  /** Human-readable role name from the assigned RBAC role (e.g. "Owner", "PM"). */
+  roleName?: string | null
   roleId: string | null
   isActive: boolean
   createdAt: string
   language: import('@/i18n').AppLanguage
   appearance: 'light' | 'midnight' | 'mint'
-  timezone: import('@/lib/timezones').UserTimezone
 }
 
 export interface CreateUserDto {
@@ -29,7 +30,6 @@ export interface UpdateUserDto {
   isActive?: boolean
   language?: import('@/i18n').AppLanguage
   appearance?: 'light' | 'midnight' | 'mint'
-  timezone?: import('@/lib/timezones').UserTimezone
 }
 
 export const usersApi = {
@@ -65,8 +65,11 @@ export const usersApi = {
   uploadAvatar: (id: string, file: File) => {
     const form = new FormData()
     form.append('file', file)
+    // POST so PHP parses the multipart body (it doesn't for PATCH/PUT); `_method`
+    // makes Laravel spoof the request back to the PATCH route.
+    form.append('_method', 'PATCH')
     return apiClient
-      .patch<{ success: true; data: AppUser }>(`/users/${id}/avatar`, form, {
+      .post<{ success: true; data: AppUser }>(`/users/${id}/avatar`, form, {
         headers: { 'Content-Type': undefined },
       })
       .then((r) => r.data.data)

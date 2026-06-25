@@ -2,6 +2,19 @@ import { appLocale } from '@/i18n'
 
 export const DEFAULT_TIMEZONE = 'Asia/Ho_Chi_Minh' as const
 
+// Site-wide display timezone (configured in global Settings → General). Held in a
+// module variable so the pure formatters below — called in many places without a
+// timezone argument — follow the shared setting. Kept in sync by useSiteTimezone().
+let siteTimezone: UserTimezone = DEFAULT_TIMEZONE
+
+export function setSiteTimezone(tz: UserTimezone): void {
+  siteTimezone = tz
+}
+
+export function getSiteTimezone(): UserTimezone {
+  return siteTimezone
+}
+
 export const TIMEZONE_OPTIONS = [
   'Asia/Ho_Chi_Minh',
   'Asia/Tokyo',

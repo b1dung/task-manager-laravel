@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\DB;
 
 class TaskController extends Controller
 {
-    private const EAGER = ['assignee', 'reporter', 'labels', 'subtasks.assignee'];
+    private const EAGER = ['assignee', 'qaAssignee', 'reporter', 'labels', 'requesters', 'subtasks.assignee', 'subtasks.column', 'parent'];
 
     public function __construct(private readonly ActivityService $activity, private readonly NotificationService $notifications) {}
 
@@ -39,7 +39,7 @@ class TaskController extends Controller
 
     public function show(string $projectId, string $id): JsonResponse
     {
-        $task = Task::with(array_merge(self::EAGER, ['parent']))
+        $task = Task::with(self::EAGER)
             ->where('project_id', $projectId)->findOrFail($id);
 
         return response()->ok(new TaskResource($task));
@@ -54,12 +54,14 @@ class TaskController extends Controller
             'type' => ['nullable', 'in:bug,feature,task,story,epic'],
             'priority' => ['nullable', 'in:urgent,high,medium,low,lowest'],
             'assigneeId' => ['nullable', 'uuid'],
+            'qaAssigneeId' => ['nullable', 'uuid'],
             'sprintId' => ['nullable', 'uuid'],
             'dueDate' => ['nullable', 'date'],
             'estimatedHours' => ['nullable', 'numeric', 'min:0'],
-            'storyPoints' => ['nullable', 'integer'],
+            'qaEstimatedHours' => ['nullable', 'numeric', 'min:0'],
             'parentTaskId' => ['nullable', 'uuid'],
             'labelIds' => ['nullable', 'array'],
+            'requesterIds' => ['nullable', 'array'],
         ]);
 
         $column = Column::where('project_id', $projectId)->findOrFail($data['columnId']);
@@ -80,11 +82,12 @@ class TaskController extends Controller
                 'priority' => $data['priority'] ?? 'medium',
                 'status' => Task::columnNameToStatus($column->name),
                 'assignee_id' => $data['assigneeId'] ?? null,
+                'qa_assignee_id' => $data['qaAssigneeId'] ?? null,
                 'reporter_id' => $request->user()->id,
                 'sprint_id' => $data['sprintId'] ?? null,
                 'due_date' => $data['dueDate'] ?? null,
                 'estimated_hours' => $data['estimatedHours'] ?? null,
-                'story_points' => $data['storyPoints'] ?? null,
+                'qa_estimated_hours' => $data['qaEstimatedHours'] ?? null,
                 'parent_task_id' => $data['parentTaskId'] ?? null,
                 'position' => $position,
                 'task_number' => $counter->last_number,
@@ -92,6 +95,9 @@ class TaskController extends Controller
 
             if (! empty($data['labelIds'])) {
                 $task->labels()->sync($data['labelIds']);
+            }
+            if (! empty($data['requesterIds'])) {
+                $task->requesters()->sync($data['requesterIds']);
             }
 
             return $task;
@@ -114,13 +120,16 @@ class TaskController extends Controller
             'status' => ['nullable', 'in:todo,in_progress,in_review,done'],
             'columnId' => ['nullable', 'uuid'],
             'assigneeId' => ['nullable', 'uuid'],
+            'qaAssigneeId' => ['nullable', 'uuid'],
             'sprintId' => ['nullable', 'uuid'],
             'parentTaskId' => ['nullable', 'uuid'],
             'dueDate' => ['nullable', 'date'],
             'estimatedHours' => ['nullable', 'numeric', 'min:0'],
             'loggedHours' => ['nullable', 'numeric', 'min:0'],
-            'storyPoints' => ['nullable', 'integer'],
+            'qaEstimatedHours' => ['nullable', 'numeric', 'min:0'],
+            'qaLoggedHours' => ['nullable', 'numeric', 'min:0'],
             'labelIds' => ['nullable', 'array'],
+            'requesterIds' => ['nullable', 'array'],
         ]);
 
         $task = Task::where('project_id', $projectId)->findOrFail($id);
@@ -135,10 +144,11 @@ class TaskController extends Controller
 
         foreach ([
             'title' => 'title', 'description' => 'description', 'type' => 'type',
-            'priority' => 'priority', 'assigneeId' => 'assignee_id', 'sprintId' => 'sprint_id',
+            'priority' => 'priority', 'assigneeId' => 'assignee_id', 'qaAssigneeId' => 'qa_assignee_id',
+            'sprintId' => 'sprint_id',
             'parentTaskId' => 'parent_task_id', 'dueDate' => 'due_date',
             'estimatedHours' => 'estimated_hours', 'loggedHours' => 'logged_hours',
-            'storyPoints' => 'story_points',
+            'qaEstimatedHours' => 'qa_estimated_hours', 'qaLoggedHours' => 'qa_logged_hours',
         ] as $in => $col) {
             if ($request->has($in)) {
                 $task->{$col} = $data[$in] ?? null;
@@ -151,11 +161,15 @@ class TaskController extends Controller
             $task->labels()->sync($data['labelIds'] ?? []);
         }
 
+        if ($request->has('requesterIds')) {
+            $task->requesters()->sync($data['requesterIds'] ?? []);
+        }
+
         $new = $this->snapshot($task);
         $action = $old['assigneeId'] !== $new['assigneeId'] ? 'assigned' : ($old['status'] !== $new['status'] ? 'status_changed' : 'updated');
         $this->activity->record($request, $projectId, $action, 'task', $task->id, $old, $new);
         $type = $action === 'assigned' ? 'task_assigned' : 'task_updated';
-        $this->notifications->taskEvent($projectId, $request->user()->id, $type, 'task', $task->id, 'updated task "'.$task->title.'"', [$task->assignee_id, $task->reporter_id]);
+        $this->notifications->taskEvent($projectId, $request->user()->id, $type, 'task', $task->id, 'updated task "'.$task->title.'"', [$task->assignee_id, $task->qa_assignee_id, $task->reporter_id]);
         ProjectEvent::dispatch($projectId, 'task:updated', ['task' => (new TaskResource($task->fresh(self::EAGER)))->resolve()]);
 
         return response()->ok(new TaskResource($task->fresh(self::EAGER)));
@@ -221,14 +235,17 @@ class TaskController extends Controller
             'hours' => ['required', 'numeric', 'gt:0'],
             'loggedDate' => ['nullable', 'date'],
             'description' => ['nullable', 'string'],
+            'isQa' => ['nullable', 'boolean'],
         ]);
         $task = Task::where('project_id', $projectId)->findOrFail($id);
-        $task->logged_hours = max(0, (float) $task->logged_hours + (float) $data['hours']);
+        $isQa = (bool) ($data['isQa'] ?? false);
+        $column = $isQa ? 'qa_logged_hours' : 'logged_hours';
+        $task->{$column} = max(0, (float) $task->{$column} + (float) $data['hours']);
         $task->save();
 
-        WorkingHour::create(['task_id' => $task->id, 'user_id' => $request->user()->id, 'hours' => $data['hours'], 'logged_date' => $data['loggedDate'] ?? now()->toDateString(), 'note' => $data['description'] ?? null]);
-        $this->activity->record($request, $projectId, 'updated', 'task', $task->id, null, ['loggedHours' => (float) $task->logged_hours]);
-        $this->notifications->taskEvent($projectId, $request->user()->id, 'time_logged', 'task', $task->id, 'logged time on "'.$task->title.'"', [$task->assignee_id, $task->reporter_id]);
+        WorkingHour::create(['task_id' => $task->id, 'user_id' => $request->user()->id, 'hours' => $data['hours'], 'is_qa' => $isQa, 'logged_date' => $data['loggedDate'] ?? now()->toDateString(), 'note' => $data['description'] ?? null]);
+        $this->activity->record($request, $projectId, 'updated', 'task', $task->id, null, [($isQa ? 'qaLoggedHours' : 'loggedHours') => (float) $task->{$column}]);
+        $this->notifications->taskEvent($projectId, $request->user()->id, 'time_logged', 'task', $task->id, ($isQa ? 'logged QA time on "' : 'logged time on "').$task->title.'"', [$task->assignee_id, $task->qa_assignee_id, $task->reporter_id]);
 
         return response()->ok(new TaskResource($task->fresh(self::EAGER)));
     }

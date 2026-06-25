@@ -1,6 +1,7 @@
+import { useSiteTimezone } from '@/hooks/useSiteTimezone'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
   BarChart, Bar, PieChart, Pie, Cell,
@@ -14,8 +15,7 @@ import { reportsApi, type ProjectSummary } from '@/api/reports'
 import { projectsApi } from '@/api/projects'
 import { Avatar, Button, EmptyState, Skeleton } from '@/components/ui'
 import { formatRelative } from '@/lib/utils'
-import { useAuthStore } from '@/stores/useAuthStore'
-import { DEFAULT_TIMEZONE, formatZonedDateTime } from '@/lib/timezones'
+import { formatZonedDateTime } from '@/lib/timezones'
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
@@ -24,13 +24,6 @@ function getProjectKey(name: string): string {
   return words.length > 1
     ? words.map((w) => w[0]).join('').toUpperCase()
     : name.slice(0, 5).toUpperCase()
-}
-
-const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  todo: { label: 'To Do', color: '#6b7280' },
-  in_progress: { label: 'In Progress', color: '#3b82f6' },
-  in_review: { label: 'In Review', color: '#f59e0b' },
-  done: { label: 'Done', color: '#10b981' },
 }
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
@@ -43,13 +36,10 @@ const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
 const PRIORITY_ORDER = ['urgent', 'high', 'medium', 'low', 'lowest']
 
 const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
-  epic: { label: 'Epic', color: '#8b5cf6' },
-  story: { label: 'Story', color: '#10b981' },
   task: { label: 'Task', color: '#3b82f6' },
-  bug: { label: 'Bug', color: '#ef4444' },
-  feature: { label: 'Feature', color: '#06b6d4' },
+  subtask: { label: 'Sub task', color: '#8b5cf6' },
 }
-const TYPE_ORDER = ['task', 'story', 'epic', 'bug', 'feature']
+const TYPE_ORDER = ['task', 'subtask']
 
 const ACTION_LABEL: Record<string, string> = {
   created: 'created',
@@ -79,6 +69,10 @@ export function SummaryPage() {
     queryKey: ['summary', projectId],
     queryFn: () => reportsApi.summary(projectId),
     enabled: !!projectId,
+    // Always pull fresh stats when opening the page so board changes (new columns,
+    // moved tasks, etc.) are reflected immediately instead of a 30s-stale cache.
+    staleTime: 0,
+    refetchOnMount: 'always',
   })
 
   return (
@@ -174,26 +168,38 @@ function Card({ title, description, children, className }: {
 // ─── Status Overview (donut) ────────────────────────────────────────────────
 
 function StatusOverview({ data, loading }: { data?: ProjectSummary; loading: boolean }) {
+  const navigate = useNavigate()
+  const { projectId = '' } = useParams<{ projectId: string }>()
   const slices = (data?.statusOverview ?? []).map((s) => ({
-    name: STATUS_CONFIG[s.status]?.label ?? s.status,
+    columnId: s.columnId,
+    name: s.name,
     value: s.count,
-    color: STATUS_CONFIG[s.status]?.color ?? '#6b7280',
+    color: s.color ?? '#6b7280',
   }))
   const total = data?.total ?? 0
 
+  // Click a column (donut slice or legend) → open the List page filtered to it.
+  const goToColumn = (columnId?: string) => {
+    if (columnId) navigate(`/projects/${projectId}/list?column=${columnId}`)
+  }
+
   return (
-    <Card title="Status Overview" description="Get a snapshot of current task statuses.">
+    <Card title="Status Overview" description="Click a column to see its tasks.">
       {loading ? (
         <Skeleton className="h-64" />
       ) : slices.length === 0 ? (
         <EmptyState title="No tasks yet" />
       ) : (
         <div className="flex items-center gap-4">
-          <div className="relative shrink-0" style={{ width: 200, height: 200 }}>
+          <div className="relative shrink-0" style={{ width: 300, height: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={slices} dataKey="value" nameKey="name"
-                  innerRadius={64} outerRadius={92} paddingAngle={2} strokeWidth={0}>
+                  innerRadius={90} outerRadius={130} paddingAngle={2} strokeWidth={0}
+                  className="cursor-pointer" onClick={(d) => {
+                    const slice = d as unknown as { columnId?: string; payload?: { columnId?: string } }
+                    goToColumn(slice.columnId ?? slice.payload?.columnId)
+                  }}>
                   {slices.map((s) => <Cell key={s.name} fill={s.color} />)}
                 </Pie>
                 <Tooltip contentStyle={{ backgroundColor: '#1b1b23', border: '1px solid #2d2d38', borderRadius: 8, fontSize: 12 }} />
@@ -201,16 +207,17 @@ function StatusOverview({ data, loading }: { data?: ProjectSummary; loading: boo
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
               <span className="text-2xl font-bold text-fg">{total}</span>
-              <span className="text-[11px] text-fg-subtle">Total Work Items</span>
+              <span className="text-[14px] text-fg-subtle">Total Work Items</span>
             </div>
           </div>
-          <div className="flex-1 min-w-0 max-h-52 overflow-y-auto scrollbar-thin space-y-1.5 pr-1">
+          <div className="flex-1 min-w-0 max-h-52 overflow-y-auto scrollbar-thin space-y-2.5 pr-1">
             {slices.map((s) => (
-              <div key={s.name} className="flex items-center gap-2 text-xs">
-                <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: s.color }} />
-                <span className="flex-1 truncate text-fg-muted">{s.name}</span>
-                <span className="font-medium text-fg">{s.value}</span>
-              </div>
+              <button key={s.name} onClick={() => goToColumn(s.columnId)}
+                className="flex w-full items-center gap-2.5 text-xs rounded-md px-1.5 py-1 -mx-1.5 hover:bg-bg-subtle transition-colors text-left">
+                <span className="w-3 h-3 shrink-0" style={{ backgroundColor: s.color }} />
+                <span className="flex-1 truncate text-fg-muted text-[16px] hover:text-accent transition-colors">{s.name}:</span>
+                <span className="font-medium text-fg text-[16px]">{s.value}</span>
+              </button>
             ))}
           </div>
         </div>
@@ -224,7 +231,7 @@ function StatusOverview({ data, loading }: { data?: ProjectSummary; loading: boo
 function RecentActivities({ data, loading, projectKey }: {
   data?: ProjectSummary; loading: boolean; projectKey: string
 }) {
-  const timezone = useAuthStore((state) => state.user?.timezone ?? DEFAULT_TIMEZONE)
+  const timezone = useSiteTimezone()
   const items = data?.recentActivities ?? []
   return (
     <Card title="Recent Activities" description="Latest changes across the project.">
@@ -300,7 +307,6 @@ function TaskTypes({ data, loading }: { data?: ProjectSummary; loading: boolean 
   const total = data?.total ?? 0
   const rows = TYPE_ORDER
     .map((key) => ({ key, label: TYPE_CONFIG[key].label, color: TYPE_CONFIG[key].color, count: map.get(key) ?? 0 }))
-    .filter((r) => r.count > 0 || ['task', 'story', 'bug'].includes(r.key))
 
   return (
     <Card title="Task Types" description="Distribution by issue type.">

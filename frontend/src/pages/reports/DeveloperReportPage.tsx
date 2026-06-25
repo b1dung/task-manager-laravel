@@ -1,3 +1,4 @@
+import { useSiteTimezone } from '@/hooks/useSiteTimezone'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
@@ -13,8 +14,7 @@ import { membersApi } from '@/api/members'
 import { projectsApi } from '@/api/projects'
 import { Avatar, Button, Skeleton, EmptyState, PriorityBadge, StatusBadge } from '@/components/ui'
 import { TaskDetailModal } from '@/pages/board/components/TaskDetailModal'
-import { useAuthStore } from '@/stores/useAuthStore'
-import { DEFAULT_TIMEZONE, formatZonedDate } from '@/lib/timezones'
+import { formatZonedDate } from '@/lib/timezones'
 
 const TASK_PAGE_SIZE = 20
 
@@ -45,7 +45,7 @@ const CHART_TOOLTIP = { backgroundColor: '#1b1b23', border: '1px solid #2d2d38',
 
 export function DeveloperReportPage() {
   const { t } = useTranslation()
-  const timezone = useAuthStore((state) => state.user?.timezone ?? DEFAULT_TIMEZONE)
+  const timezone = useSiteTimezone()
   const { projectId = '' } = useParams<{ projectId: string }>()
 
   const [period, setPeriod] = useState<Period>('week')
@@ -183,19 +183,23 @@ export function DeveloperReportPage() {
         {/* Charts */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <ChartCard title="Task Distribution" loading={isLoading}>
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={260}>
               <BarChart data={data?.taskDistribution ?? []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                 <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#8888a0' }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#8888a0' }} />
-                <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} contentStyle={CHART_TOOLTIP} />
-                <Bar dataKey="value" fill="#8166ff" radius={[4, 4, 0, 0]} />
+                <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} contentStyle={CHART_TOOLTIP} itemStyle={{ color: '#fff' }} labelStyle={{ color: '#fff' }} />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                  {(data?.taskDistribution ?? []).map((entry, i) => (
+                    <Cell key={i} fill={entry.color ?? PIE_COLORS[i % PIE_COLORS.length]} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
 
           <ChartCard title="Logged Hours Trend" loading={isLoading}>
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={260}>
               <LineChart data={data?.loggedHoursTrend ?? []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#8888a0' }} />
@@ -207,7 +211,7 @@ export function DeveloperReportPage() {
           </ChartCard>
 
           <ChartCard title="Completion Trend" loading={isLoading}>
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={260}>
               <AreaChart data={data?.completionTrend ?? []}>
                 <defs>
                   <linearGradient id="compGrad" x1="0" y1="0" x2="0" y2="1">
@@ -225,7 +229,7 @@ export function DeveloperReportPage() {
           </ChartCard>
 
           <ChartCard title="Overdue Analysis" loading={isLoading}>
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie data={data?.overdueAnalysis ?? []} dataKey="value" nameKey="name"
                   innerRadius={50} outerRadius={85} paddingAngle={2}
@@ -312,11 +316,24 @@ export function DeveloperReportPage() {
                     >
                       <td className="px-4 py-2 max-w-xs"><span className="text-accent hover:underline truncate block">{t.title}</span></td>
                       <td className="px-4 py-2"><PriorityBadge priority={t.priority} /></td>
-                      <td className="px-4 py-2"><StatusBadge status={t.status} /></td>
+                      <td className="px-4 py-2">
+                        {t.columnName ? (
+                          <span
+                            className="inline-flex rounded-md border px-2 py-0.5 text-xs font-medium"
+                            style={t.columnColor
+                              ? { backgroundColor: `${t.columnColor}1A`, color: t.columnColor, borderColor: `${t.columnColor}55` }
+                              : undefined}
+                          >
+                            {t.columnName}
+                          </span>
+                        ) : (
+                          <StatusBadge status={t.status} />
+                        )}
+                      </td>
                       <td className="px-4 py-2 text-fg-muted">{t.estimatedHours ?? '—'}</td>
-                      <td className="px-4 py-2 text-fg-muted">{t.loggedHours ?? '—'}</td>
-                      <td className="px-4 py-2 text-fg-muted whitespace-nowrap">{t.dueDate ? formatZonedDate(t.dueDate, timezone) : '—'}</td>
-                      <td className="px-4 py-2 text-fg-muted whitespace-nowrap">{t.completedDate ?? '—'}</td>
+                      <td className="px-4 py-2 text-fg-muted">{t.loggedHours != null ? `${t.loggedHours}h` : '—'}</td>
+                      <td className="px-4 py-2 text-fg-muted whitespace-nowrap">{t.dueDate ? formatZonedDate(t.dueDate, timezone, 'en-US') : '—'}</td>
+                      <td className="px-4 py-2 text-fg-muted whitespace-nowrap">{t.completedDate ? formatZonedDate(t.completedDate, timezone, 'en-US') : '—'}</td>
                       <td className="px-4 py-2">
                         {t.overdue || t.lateDays > 0 ? (
                           <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-danger/15 text-danger whitespace-nowrap">

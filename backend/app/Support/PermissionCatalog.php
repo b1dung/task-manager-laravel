@@ -17,6 +17,7 @@ class PermissionCatalog
             // User management
             ['key' => 'manage_users', 'label' => 'Manage Users', 'category' => 'User Management', 'description' => 'Tạo, sửa, vô hiệu hóa tài khoản người dùng'],
             ['key' => 'manage_roles', 'label' => 'Manage Roles', 'category' => 'User Management', 'description' => 'Tạo role và phân quyền (truy cập trang này)'],
+            ['key' => 'manage_settings', 'label' => 'Manage Settings', 'category' => 'User Management', 'description' => 'Xem và sửa cấu hình chung của site (timezone…)'],
             // Projects
             ['key' => 'view_all_projects', 'label' => 'View All Projects', 'category' => 'Projects', 'description' => 'Xem và truy cập MỌI dự án, kể cả dự án chưa được thêm vào team (super quyền)'],
             ['key' => 'create_project', 'label' => 'Create Project', 'category' => 'Projects', 'description' => 'Tạo dự án mới'],

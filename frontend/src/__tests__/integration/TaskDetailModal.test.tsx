@@ -94,8 +94,9 @@ const mockSubtask: Task = {
   title: 'Existing subtask', description: null, type: 'task', priority: 'low',
   status: 'todo', assigneeId: null, reporterId: 'user-1', assignee: null,
   reporter: { id: 'user-1', fullName: 'Alice', email: 'alice@test.com', avatarUrl: null },
-  dueDate: null, estimatedHours: null, loggedHours: null, storyPoints: null,
-  position: 0, parentTaskId: 'task-1', labels: [],
+  dueDate: null, estimatedHours: null, loggedHours: null,
+  position: 0, parentTaskId: 'task-1', labels: [], requesters: [],
+  qaAssigneeId: null, qaAssignee: null, qaEstimatedHours: null, qaLoggedHours: null,
   createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
 }
 
@@ -105,8 +106,9 @@ const mockTask: Task = {
   priority: 'medium', status: 'todo', assigneeId: null, reporterId: 'user-1',
   assignee: null,
   reporter: { id: 'user-1', fullName: 'Alice', email: 'alice@test.com', avatarUrl: null },
-  dueDate: null, estimatedHours: 8, loggedHours: 2, storyPoints: 3,
-  position: 0, parentTaskId: null, labels: [],
+  dueDate: null, estimatedHours: 8, loggedHours: 2,
+  position: 0, parentTaskId: null, labels: [], requesters: [],
+  qaAssigneeId: null, qaAssignee: null, qaEstimatedHours: null, qaLoggedHours: null,
   subtasks: [mockSubtask],
   createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
 }
@@ -116,8 +118,9 @@ const mockCreatedSubtask: Task = {
   title: 'New subtask', description: null, type: 'task', priority: 'medium',
   status: 'todo', assigneeId: null, reporterId: 'user-1', assignee: null,
   reporter: { id: 'user-1', fullName: 'Alice', email: 'alice@test.com', avatarUrl: null },
-  dueDate: null, estimatedHours: null, loggedHours: null, storyPoints: null,
-  position: 1, parentTaskId: 'task-1', labels: [],
+  dueDate: null, estimatedHours: null, loggedHours: null,
+  position: 1, parentTaskId: 'task-1', labels: [], requesters: [],
+  qaAssigneeId: null, qaAssignee: null, qaEstimatedHours: null, qaLoggedHours: null,
   createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
 }
 

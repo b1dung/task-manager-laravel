@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm, useWatch } from 'react-hook-form'
 import {
-  LayoutGrid, LayoutDashboard, Calendar, Users, BarChart2, Gauge, Paperclip, Bell, Activity, ShieldCheck, UserCog, FolderCog, Archive, ListChecks, Settings as SettingsIcon,
+  LayoutGrid, Globe, List, Calendar, Users, BarChart2, Gauge, Paperclip, Bell, Activity, ShieldCheck, UserCog, FolderCog, Archive, ListChecks, Settings as SettingsIcon,
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
   Plus, Check, Folder, type LucideIcon,
 } from 'lucide-react'
@@ -34,14 +34,14 @@ const NAV_GROUPS: { titleKey: string; items: NavItem[] }[] = [
   {
     titleKey: 'nav.overview',
     items: [
-      { to: 'summary', icon: LayoutDashboard, labelKey: 'nav.summary' },
+      { to: 'tasks', icon: LayoutGrid, labelKey: 'nav.board' },
+      { to: 'summary', icon: Globe, labelKey: 'nav.summary' },
+      { to: 'list', icon: List, labelKey: 'nav.list', requiresProject: true },
     ],
   },
   {
     titleKey: 'nav.work',
     items: [
-      { to: 'my-tasks', icon: ListChecks, labelKey: 'nav.myTasks', absolutePath: '/my-tasks' },
-      { to: 'tasks', icon: LayoutGrid, labelKey: 'nav.board' },
       { to: 'calendar', icon: Calendar, labelKey: 'nav.calendar' },
       { to: 'attachments', icon: Paperclip, labelKey: 'nav.attachments' },
       { to: 'archived', icon: Archive, labelKey: 'nav.archived', requiresProject: true, requiresPermission: 'approve_task' },
@@ -50,8 +50,10 @@ const NAV_GROUPS: { titleKey: string; items: NavItem[] }[] = [
   {
     titleKey: 'nav.insights',
     items: [
+      { to: 'my-tasks', icon: ListChecks, labelKey: 'nav.myTasks', absolutePath: '/my-tasks' },
       { to: 'reports', icon: BarChart2, labelKey: 'nav.reports' },
       { to: 'developer-report', icon: Gauge, labelKey: 'nav.developerReport' },
+        // { to: 'settings', icon: SettingsIcon, labelKey: 'nav.settings', requiresProject: true, requiresPermission: 'edit_project' },
     ],
   },
   {
@@ -68,7 +70,7 @@ const NAV_GROUPS: { titleKey: string; items: NavItem[] }[] = [
       { to: 'manage-projects', icon: FolderCog, labelKey: 'nav.projectManagement', absolutePath: '/manage-projects', requiresPermission: 'delete_project' },
       { to: 'users', icon: UserCog, labelKey: 'nav.userManagement', absolutePath: '/users', requiresPermission: 'manage_users' },
       { to: 'roles', icon: ShieldCheck, labelKey: 'nav.rolesPermissions', absolutePath: '/roles', requiresPermission: 'manage_roles' },
-      { to: 'settings', icon: SettingsIcon, labelKey: 'nav.settings', requiresProject: true, requiresPermission: 'edit_project' },
+      { to: 'settings', icon: SettingsIcon, labelKey: 'nav.siteSettings', absolutePath: '/settings', requiresPermission: 'manage_settings' },
     ],
   },
 ]

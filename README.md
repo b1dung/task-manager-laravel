@@ -45,7 +45,7 @@ npm run dev                                       # FE :5174  → http://localho
 
 Đăng nhập seed: `admin@taskboard.dev` / `password123`.
 
-## Chạy dev — PHP/MySQL thật (server có PHP 8.4 + pdo_mysql)
+## Chạy dev — PHP/MySQL thật (server có PHP 8.3 + pdo_mysql)
 
 ```bash
 cd backend

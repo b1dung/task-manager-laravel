@@ -1,3 +1,4 @@
+import { useSiteTimezone } from '@/hooks/useSiteTimezone'
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -25,6 +26,7 @@ import { tasksApi, type Task, type UpdateTaskDto } from '@/api/tasks'
 import { commentsApi, type Comment } from '@/api/comments'
 import { membersApi } from '@/api/members'
 import { labelsApi } from '@/api/labels'
+import { requestersApi } from '@/api/requesters'
 import { columnsApi, type BoardColumn } from '@/api/columns'
 import { attachmentsApi } from '@/api/attachments'
 import { apiClient } from '@/api/client'
@@ -35,7 +37,7 @@ import { usePermissions } from '@/hooks/usePermissions'
 import { useTaskStore } from '@/stores/useTaskStore'
 import { useToast } from '@/hooks/useToast'
 import { cn, formatRelative } from '@/lib/utils'
-import { DEFAULT_TIMEZONE, formatZonedDate, formatZonedDateTime } from '@/lib/timezones'
+import { formatZonedDate, formatZonedDateTime } from '@/lib/timezones'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -156,13 +158,15 @@ export function TaskDetailModal({ task, taskId, projectId, projectKey = 'TASK', 
     mutationFn: (dto: UpdateTaskDto) => tasksApi.update(projectId, t!.id, dto),
     onMutate: (dto) => {
       if (t) {
-        // For assigneeId changes, look up full assignee object from cached members
+        // For (qa)assigneeId changes, look up full user object from cached members
         let enriched: Partial<Task> = dto
+        type M = { userId: string; user: { id: string; fullName: string; email: string; avatarUrl: string | null } }
+        const cachedMembers = qc.getQueryData<M[]>(['members', projectId]) ?? []
         if ('assigneeId' in dto) {
-          type M = { userId: string; user: { id: string; fullName: string; email: string; avatarUrl: string | null } }
-          const cachedMembers = qc.getQueryData<M[]>(['members', projectId]) ?? []
-          const memberUser = cachedMembers.find((m) => m.userId === dto.assigneeId)?.user ?? null
-          enriched = { ...dto, assignee: memberUser }
+          enriched = { ...enriched, assignee: cachedMembers.find((m) => m.userId === dto.assigneeId)?.user ?? null }
+        }
+        if ('qaAssigneeId' in dto) {
+          enriched = { ...enriched, qaAssignee: cachedMembers.find((m) => m.userId === dto.qaAssigneeId)?.user ?? null }
         }
         // Update query cache for immediate display in modal
         qc.setQueryData(['task', projectId, t.id], { ...t, ...enriched })
@@ -736,7 +740,7 @@ function DescriptionEditor({ task, onSave }: { task: Task; onSave: (d: string) =
         {/* Editor area */}
         <EditorContent
           editor={editor}
-          className="min-h-[120px] max-h-[500px] overflow-y-auto scrollbar-thin px-3 py-2.5 text-sm text-fg bg-bg-elevated cursor-text"
+          className="min-h-[150px] max-h-[500px] overflow-y-auto scrollbar-thin px-3 py-2.5 text-sm text-fg bg-bg-elevated cursor-text"
         />
       </div>
 
@@ -898,13 +902,19 @@ function AttachmentsSection({ task, projectId }: { task: Task; projectId: string
 
 // ─── Subtask Status Picker ────────────────────────────────────────────────────
 
-function SubtaskStatusPicker({ sub, projectId, onUpdate }: {
-  sub: Task; projectId: string; onUpdate: () => void
+function SubtaskStatusPicker({ sub, projectId, columns, onUpdate }: {
+  sub: Task; projectId: string; columns: BoardColumn[]; onUpdate: () => void
 }) {
   const [open, setOpen] = useState(false)
   const btnRef = useRef<HTMLButtonElement>(null)
   const [pos, setPos] = useState({ top: 0, left: 0 })
-  const cfg = SUBTASK_STATUS[sub.status] ?? SUBTASK_STATUS.todo
+
+  // Columns are the source of truth for status — the subtask's "status" pill shows
+  // its actual board column, and picking another column moves it there (the backend
+  // re-derives the status enum from the column name).
+  const currentCol = columns.find(c => c.id === sub.columnId) ?? null
+  const current = columnVisual(currentCol)
+  const currentLabel = currentCol?.name ?? (SUBTASK_STATUS[sub.status]?.label ?? sub.status)
 
   const openDropdown = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -915,8 +925,8 @@ function SubtaskStatusPicker({ sub, projectId, onUpdate }: {
     setOpen(v => !v)
   }
 
-  const updateStatus = async (status: string) => {
-    await tasksApi.update(projectId, sub.id, { status })
+  const moveToColumn = async (columnId: string) => {
+    if (columnId !== sub.columnId) await tasksApi.update(projectId, sub.id, { columnId })
     onUpdate()
     setOpen(false)
   }
@@ -926,35 +936,36 @@ function SubtaskStatusPicker({ sub, projectId, onUpdate }: {
       <button
         ref={btnRef}
         onClick={openDropdown}
-        className={cn(
-          'w-full inline-flex items-center justify-between gap-0.5 h-[25px] px-1.5 py-0.5 rounded-[4px] border text-[11px] font-medium transition-colors',
-          cfg.cls,
-        )}
+        style={{ backgroundColor: current.bg, color: current.fg }}
+        className="w-full inline-flex items-center justify-between gap-0.5 h-[25px] px-1.5 py-0.5 rounded-[4px] text-[11px] font-medium transition-opacity hover:opacity-90"
       >
-        <span className="truncate">{cfg.label}</span>
+        <span className="truncate">{currentLabel}</span>
         <ChevronDown className="w-2.5 h-2.5 shrink-0" />
       </button>
       {open && createPortal(
         <>
           <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
           <div
-            className="fixed z-[9999] w-36 rounded-lg border border-border bg-bg-surface shadow-app-md overflow-hidden"
-            style={{ top: pos.top, left: pos.left - 144 }}
+            className="fixed z-[9999] w-44 rounded-lg border border-border bg-bg-surface shadow-app-md overflow-hidden py-0.5"
+            style={{ top: pos.top, left: pos.left - 176 }}
           >
-            {Object.entries(SUBTASK_STATUS).map(([key, sc]) => (
-              <button
-                key={key}
-                onClick={(e) => { e.stopPropagation(); updateStatus(key) }}
-                className={cn(
-                  'w-full flex items-center px-3 py-1.5 text-xs hover:bg-bg-subtle transition-colors',
-                  key === sub.status && 'bg-bg-subtle',
-                )}
-              >
-                <span className={cn('inline-flex px-1.5 py-0.5 rounded-[4px] border text-[10px] font-medium', sc.cls)}>
-                  {sc.label}
-                </span>
-              </button>
-            ))}
+            {columns.map((col) => {
+              const isCurrent = col.id === sub.columnId
+              return (
+                <button
+                  key={col.id}
+                  onClick={(e) => { e.stopPropagation(); moveToColumn(col.id) }}
+                  className={cn(
+                    'w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-bg-subtle transition-colors',
+                    isCurrent && 'bg-bg-subtle',
+                  )}
+                >
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: columnVisual(col).bg }} />
+                  <span className="flex-1 text-left text-fg truncate">{col.name}</span>
+                  {isCurrent && <Check className="w-3.5 h-3.5 text-accent shrink-0" />}
+                </button>
+              )
+            })}
           </div>
         </>,
         document.body,
@@ -973,6 +984,10 @@ function SubtasksSection({ task, projectId, projectKey = 'TASK', onSubtaskClick 
   const toast = useToast()
   const [adding, setAdding] = useState(false)
   const [newTitle, setNewTitle] = useState('')
+  const { data: columns = [] } = useQuery({
+    queryKey: ['columns', projectId],
+    queryFn: () => columnsApi.list(projectId),
+  })
   const subtasks = (task.subtasks ?? [])
   const done = subtasks.filter((s) => s.status === 'done').length
   const pct = subtasks.length ? Math.round((done / subtasks.length) * 100) : 0
@@ -1097,7 +1112,11 @@ function SubtasksSection({ task, projectId, projectKey = 'TASK', onSubtaskClick 
                 <SubtaskStatusPicker
                   sub={sub}
                   projectId={projectId}
-                  onUpdate={() => qc.invalidateQueries({ queryKey: ['task', projectId, task.id] })}
+                  columns={columns}
+                  onUpdate={() => {
+                    qc.invalidateQueries({ queryKey: ['task', projectId, task.id] })
+                    qc.invalidateQueries({ queryKey: ['tasks', projectId] })
+                  }}
                 />
               </div>
             </div>
@@ -1380,7 +1399,7 @@ function CommentsTab({ projectId, taskId }: { projectId: string; taskId: string 
                 }
               }}
               placeholder="Add a comment... (Shift+Enter to send)"
-              rows={2}
+              rows={4}
               className="w-full bg-bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-fg resize-none focus:outline-none focus:ring-2 focus:ring-accent placeholder:text-fg-subtle"
             />
             <div className="flex items-center justify-between">
@@ -1502,7 +1521,7 @@ function HistoryTab({ projectId, taskId }: { projectId: string; taskId: string }
 }
 
 function HistoryItem({ log }: { log: ActivityLog }) {
-  const timezone = useAuthStore((state) => state.user?.timezone ?? DEFAULT_TIMEZONE)
+  const timezone = useSiteTimezone()
   const actionLabel: Record<string, string> = {
     created: 'created this task',
     updated: 'updated',
@@ -1599,6 +1618,7 @@ function WorkLogTab({ task, onUpdate }: { task: Task; onUpdate: (dto: UpdateTask
 function RightColumn({ task, projectId, projectKey = 'TASK', onUpdate }: {
   task: Task; projectId: string; projectKey?: string; onUpdate: (dto: UpdateTaskDto) => void
 }) {
+  const { t: tr } = useTranslation()
   const [detailsOpen, setDetailsOpen] = useState(true)
   const [devOpen, setDevOpen] = useState(false)
   const [autoOpen, setAutoOpen] = useState(false)
@@ -1611,13 +1631,17 @@ function RightColumn({ task, projectId, projectKey = 'TASK', onUpdate }: {
     queryKey: ['labels', projectId],
     queryFn: () => labelsApi.list(projectId),
   })
+  const { data: requesters = [] } = useQuery({
+    queryKey: ['requesters', projectId],
+    queryFn: () => requestersApi.list(projectId),
+  })
   const { data: columns = [] } = useQuery({
     queryKey: ['columns', projectId],
     queryFn: () => columnsApi.list(projectId),
   })
 
   return (
-    <div className="w-[400px] min-w-[400px] shrink-0 border-l border-border overflow-y-auto scrollbar-thin flex flex-col">
+    <div className="w-[430px] min-w-[430px] shrink-0 border-l border-border overflow-y-auto scrollbar-thin flex flex-col">
 
       {/* Status + quick actions */}
       <div className="px-5 py-4 border-b border-border space-y-2">
@@ -1644,6 +1668,11 @@ function RightColumn({ task, projectId, projectKey = 'TASK', onUpdate }: {
             <AssigneeField task={task} members={members} onUpdate={onUpdate} />
           </FieldRow>
 
+          {/* QA Assignee */}
+          <FieldRow label="QA Assignee" icon={<User className="w-3.5 h-3.5" />}>
+            <AssigneeField task={task} members={members} onUpdate={onUpdate} variant="qa" />
+          </FieldRow>
+
           {/* Priority */}
           <FieldRow label="Priority" icon={<Flag className="w-3.5 h-3.5" />}>
             <PriorityField task={task} onUpdate={onUpdate} />
@@ -1654,9 +1683,14 @@ function RightColumn({ task, projectId, projectKey = 'TASK', onUpdate }: {
             <DueDateField task={task} onUpdate={onUpdate} />
           </FieldRow>
 
-          {/* Labels */}
-          <FieldRow label="Labels" icon={<Tag className="w-3.5 h-3.5" />}>
+          {/* Company (formerly Labels) */}
+          <FieldRow label={tr('taskDetail.company')} icon={<Tag className="w-3.5 h-3.5" />}>
             <LabelsField task={task} labels={labels} projectId={projectId} onUpdate={onUpdate} />
+          </FieldRow>
+
+          {/* Requester (label-like; who requested the task) */}
+          <FieldRow label="Requester" icon={<User className="w-3.5 h-3.5" />}>
+            <LabelsField task={task} labels={requesters} projectId={projectId} onUpdate={onUpdate} variant="requester" />
           </FieldRow>
 
           {/* Reporter */}
@@ -1669,20 +1703,14 @@ function RightColumn({ task, projectId, projectKey = 'TASK', onUpdate }: {
             ) : <span className="text-sm text-fg-muted">—</span>}
           </FieldRow>
 
-          {/* Story points */}
-          <FieldRow label="Story points" icon={<CheckSquare className="w-3.5 h-3.5" />}>
-            <input
-              type="number" min={0}
-              defaultValue={task.storyPoints ?? ''}
-              onBlur={(e) => onUpdate({ storyPoints: Number(e.target.value) || undefined })}
-              placeholder="None"
-              className="w-16 text-sm text-fg bg-transparent focus:outline-none focus:bg-bg-elevated focus:px-2 focus:rounded-md placeholder:text-fg-muted"
-            />
-          </FieldRow>
-
           {/* Time tracking */}
           <FieldRow label="Time tracking" icon={<CheckSquare className="w-3.5 h-3.5" />}>
             <TimeTrackingField task={task} projectId={projectId} />
+          </FieldRow>
+
+          {/* QA time tracking */}
+          <FieldRow label="QA time tracking" icon={<CheckSquare className="w-3.5 h-3.5" />}>
+            <TimeTrackingField task={task} projectId={projectId} variant="qa" />
           </FieldRow>
 
           {/* Parent task */}
@@ -1717,7 +1745,7 @@ function RightColumn({ task, projectId, projectKey = 'TASK', onUpdate }: {
         open={devOpen}
         onToggle={() => setDevOpen(v => !v)}
       >
-        <CreateBranchPanel task={task} />
+        <CreateBranchPanel task={task} projectKey={projectKey} />
       </CollapsibleSection>
 
       {/* Automation */}
@@ -1821,14 +1849,20 @@ function StatusDropdown({ task, columns, onUpdate }: { task: Task; columns: Boar
 
 // ─── Assignee Field ───────────────────────────────────────────────────────────
 
-function AssigneeField({ task, members, onUpdate }: {
+function AssigneeField({ task, members, onUpdate, variant = 'dev' }: {
   task: Task; members: Array<{ userId: string; user: { fullName: string; avatarUrl: string | null } }>
   onUpdate: (dto: UpdateTaskDto) => void
+  variant?: 'dev' | 'qa'
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const { user: me } = useAuthStore()
   const canAssign = usePermissions().includes('assign_tasks')
+
+  const isQa = variant === 'qa'
+  const currentId = isQa ? task.qaAssigneeId : task.assigneeId
+  const setAssignee = (userId: string | null | undefined) =>
+    onUpdate(isQa ? { qaAssigneeId: userId ?? null } : { assigneeId: userId ?? null })
 
   useEffect(() => {
     if (!open) return
@@ -1837,8 +1871,8 @@ function AssigneeField({ task, members, onUpdate }: {
     return () => document.removeEventListener('mousedown', h)
   }, [open])
 
-  // Use task.assignee object directly (from store/server); fallback to members list lookup
-  const assigneeUser = task.assignee ?? members.find(m => m.userId === task.assigneeId)?.user ?? null
+  // Use the task's user object directly (from store/server); fallback to members list lookup
+  const assigneeUser = (isQa ? task.qaAssignee : task.assignee) ?? members.find(m => m.userId === currentId)?.user ?? null
 
   // Without assign_tasks the backend rejects any assignee change — show read-only.
   if (!canAssign) {
@@ -1860,18 +1894,18 @@ function AssigneeField({ task, members, onUpdate }: {
           : <span className="text-sm text-fg-muted">Unassigned</span>
         }
       </button>
-      {!task.assigneeId && (
+      {!currentId && (
         <button
-          onClick={() => { onUpdate({ assigneeId: me?.id }); setOpen(false) }}
+          onClick={() => { setAssignee(me?.id); setOpen(false) }}
           className="ml-2 text-xs text-accent hover:underline"
         >
           Assign to me
         </button>
       )}
       {open && (
-        <div className="absolute top-full left-0 mt-1 z-50 w-48 rounded-lg border border-border bg-bg-surface shadow-app-md overflow-hidden">
+        <div className="absolute top-full left-0 mt-1 z-50 w-56 rounded-lg border border-border bg-bg-surface shadow-app-md overflow-hidden">
           <button
-            onClick={() => { onUpdate({ assigneeId: null }); setOpen(false) }}
+            onClick={() => { setAssignee(null); setOpen(false) }}
             className="w-full text-left px-3 py-2 text-sm text-fg-muted hover:bg-bg-subtle"
           >
             Unassigned
@@ -1879,12 +1913,12 @@ function AssigneeField({ task, members, onUpdate }: {
           {members.map(m => (
             <button
               key={m.userId}
-              onClick={() => { onUpdate({ assigneeId: m.userId }); setOpen(false) }}
-              className={cn('w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-bg-subtle', m.userId === task.assigneeId && 'bg-bg-active')}
+              onClick={() => { setAssignee(m.userId); setOpen(false) }}
+              className={cn('w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-bg-subtle', m.userId === currentId && 'bg-bg-active')}
             >
               <Avatar name={m.user.fullName} avatarUrl={m.user.avatarUrl} size="xs" />
               {m.user.fullName}
-              {m.userId === task.assigneeId && <Check className="w-3.5 h-3.5 ml-auto text-accent" />}
+              {m.userId === currentId && <Check className="w-3.5 h-3.5 ml-auto text-accent" />}
             </button>
           ))}
         </div>
@@ -1901,11 +1935,12 @@ const LABEL_COLORS = [
   '#97A0AF','#42526E',
 ]
 
-function LabelsField({ task, labels, projectId, onUpdate }: {
+function LabelsField({ task, labels, projectId, onUpdate, variant = 'label' }: {
   task: Task
   labels: Array<{ id: string; name: string; color: string }>
   projectId: string
   onUpdate: (dto: UpdateTaskDto) => void
+  variant?: 'label' | 'requester'
 }) {
   const { t: tr } = useTranslation()
   const qc = useQueryClient()
@@ -1915,7 +1950,13 @@ function LabelsField({ task, labels, projectId, onUpdate }: {
   const [creating, setCreating] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const labelIds = task.labels.map(l => l.id)
+
+  const isReq = variant === 'requester'
+  const selected = (isReq ? task.requesters : task.labels) ?? []
+  const labelIds = selected.map(l => l.id)
+  const emitIds = (ids: string[]) => onUpdate(isReq ? { requesterIds: ids } : { labelIds: ids })
+  const createEntry = isReq ? requestersApi.create : labelsApi.create
+  const listQueryKey = isReq ? ['requesters', projectId] : ['labels', projectId]
 
   useEffect(() => {
     if (!open) return
@@ -1932,20 +1973,20 @@ function LabelsField({ task, labels, projectId, onUpdate }: {
     const next = labelIds.includes(labelId)
       ? labelIds.filter(id => id !== labelId)
       : [...labelIds, labelId]
-    onUpdate({ labelIds: next })
+    emitIds(next)
   }
 
   const remove = (e: React.MouseEvent, labelId: string) => {
     e.stopPropagation()
-    onUpdate({ labelIds: labelIds.filter(id => id !== labelId) })
+    emitIds(labelIds.filter(id => id !== labelId))
   }
 
   const createLabel = async () => {
     const name = newName.trim()
     if (!name) return
-    const created = await labelsApi.create(projectId, { name, color: newColor })
-    qc.invalidateQueries({ queryKey: ['labels', projectId] })
-    onUpdate({ labelIds: [...labelIds, created.id] })
+    const created = await createEntry(projectId, { name, color: newColor })
+    qc.invalidateQueries({ queryKey: listQueryKey })
+    emitIds([...labelIds, created.id])
     setNewName('')
     setCreating(false)
   }
@@ -1954,10 +1995,10 @@ function LabelsField({ task, labels, projectId, onUpdate }: {
     <div ref={ref} className="relative">
       {/* Chips */}
       <div className="flex flex-wrap gap-1">
-        {task.labels.length === 0 && !open && (
+        {selected.length === 0 && !open && (
           <span className="text-sm text-fg-muted">None</span>
         )}
-        {task.labels.map(l => (
+        {selected.map(l => (
           <span
             key={l.id}
             className="flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-xs font-medium text-white group"
@@ -2097,7 +2138,7 @@ function PriorityField({ task, onUpdate }: { task: Task; onUpdate: (dto: UpdateT
 // ─── Due Date Field ───────────────────────────────────────────────────────────
 
 function DueDateField({ task, onUpdate }: { task: Task; onUpdate: (dto: UpdateTaskDto) => void }) {
-  const timezone = useAuthStore((state) => state.user?.timezone ?? DEFAULT_TIMEZONE)
+  const timezone = useSiteTimezone()
   const [editing, setEditing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -2174,8 +2215,9 @@ function DueDateField({ task, onUpdate }: { task: Task; onUpdate: (dto: UpdateTa
 
 // ─── Time Tracking Field ──────────────────────────────────────────────────────
 
-function TimeTrackingField({ task, projectId }: { task: Task; projectId: string }) {
+function TimeTrackingField({ task, projectId, variant = 'dev' }: { task: Task; projectId: string; variant?: 'dev' | 'qa' }) {
   const { t: tr } = useTranslation()
+  const isQa = variant === 'qa'
   const [showModal, setShowModal] = useState(false)
   const [timeInput, setTimeInput] = useState('')
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
@@ -2186,8 +2228,8 @@ function TimeTrackingField({ task, projectId }: { task: Task; projectId: string 
   const toast = useToast()
   const qc = useQueryClient()
 
-  const logged    = Number(task.loggedHours)   || 0
-  const estimated = Number(task.estimatedHours) || 0
+  const logged    = Number(isQa ? task.qaLoggedHours : task.loggedHours)   || 0
+  const estimated = Number(isQa ? task.qaEstimatedHours : task.estimatedHours) || 0
   const hasLogged = logged > 0
   const overBudget = estimated > 0 && logged > estimated
   const pct = estimated > 0
@@ -2204,16 +2246,19 @@ function TimeTrackingField({ task, projectId }: { task: Task; projectId: string 
         hours: h,
         loggedDate: date,
         description: description.trim() || undefined,
+        isQa,
       })
-      // Update estimated_hours based on remaining mode
+      const setEstimate = (val: number) =>
+        tasksApi.update(projectId, task.id, isQa ? { qaEstimatedHours: val } : { estimatedHours: val })
+      // Update (qa_)estimated_hours based on remaining mode
       if (remainingMode === 'auto' && estimated > 0) {
         const newEstimated = Math.max(logged + h, estimated - h)
         if (newEstimated !== estimated) {
-          await tasksApi.update(projectId, task.id, { estimatedHours: newEstimated })
+          await setEstimate(newEstimated)
         }
       } else if (remainingMode === 'manual') {
         const remaining = parseTimeInput(manualRemaining)
-        await tasksApi.update(projectId, task.id, { estimatedHours: logged + h + remaining })
+        await setEstimate(logged + h + remaining)
       }
       return updated
     },
@@ -2398,7 +2443,7 @@ function StartDateField({ task, onUpdate }: { task: Task; onUpdate: (dto: Update
 
 // ─── Create Branch Panel ──────────────────────────────────────────────────────
 
-function CreateBranchPanel({ task }: { task: Task }) {
+function CreateBranchPanel({ task, projectKey = 'TASK' }: { task: Task; projectKey?: string }) {
   const { t: tr } = useTranslation()
   const [expanded, setExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -2410,7 +2455,9 @@ function CreateBranchPanel({ task }: { task: Task }) {
     .trim()
     .replace(/\s+/g, '-')
     .slice(0, 40)
-  const taskId = `KAN-${(task.position ?? 0) + 1}`
+  const taskId = task.taskNumber != null
+    ? `${projectKey}-${task.taskNumber}`
+    : `${projectKey}-${(task.position ?? 0) + 1}`
   const [branchName, setBranchName] = useState(`${taskId.toLowerCase()}-${slug}`)
   const command = `git checkout -b ${branchName}`
 
@@ -2501,7 +2548,7 @@ function FieldRow({ label, icon, children, align = 'start' }: {
 }) {
   return (
     <div className={cn('flex gap-2 py-2 border-b border-border/50 last:border-0', align === 'center' ? 'items-center' : 'items-start')}>
-      <div className={cn('flex items-center gap-1.5 w-28 shrink-0 text-xs text-fg-muted', align === 'start' && 'pt-0.5')}>
+      <div className={cn('flex items-center gap-1.5 w-35 shrink-0 text-xs text-fg-muted', align === 'start' && 'pt-0.5')}>
         {icon}{label}
       </div>
       <div className="flex-1 min-w-0">{children}</div>

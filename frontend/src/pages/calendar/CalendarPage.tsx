@@ -1,3 +1,4 @@
+import { useSiteTimezone } from '@/hooks/useSiteTimezone'
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
@@ -18,8 +19,7 @@ import { Avatar, Button, Input, Modal, Skeleton, EmptyState } from '@/components
 import { TaskDetailModal } from '@/pages/board/components/TaskDetailModal'
 import { useToast } from '@/hooks/useToast'
 import { cn } from '@/lib/utils'
-import { useAuthStore } from '@/stores/useAuthStore'
-import { DEFAULT_TIMEZONE, formatZonedDate, todayInTimezone, type UserTimezone } from '@/lib/timezones'
+import { formatZonedDate, todayInTimezone, type UserTimezone } from '@/lib/timezones'
 
 const PRIORITY_ICON: Record<string, string> = {
   urgent: '/priority/highest_new.svg',
@@ -63,7 +63,7 @@ function getProjectKey(name: string): string {
 export function CalendarPage() {
   const { t } = useTranslation()
   const WEEKDAYS = t('calendar.weekdays', { returnObjects: true }) as string[]
-  const timezone = useAuthStore((state) => state.user?.timezone ?? DEFAULT_TIMEZONE)
+  const timezone = useSiteTimezone()
   const { projectId = '' } = useParams<{ projectId: string }>()
   const qc = useQueryClient()
   const toast = useToast()

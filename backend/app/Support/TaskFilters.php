@@ -15,10 +15,10 @@ class TaskFilters
     public static function apply(Builder $query, array $p): void
     {
         $columnFilters = [
+            'columnId' => 'column_id',
             'status' => 'status',
             'priority' => 'priority',
             'type' => 'type',
-            'assigneeId' => 'assignee_id',
             'sprintId' => 'sprint_id',
         ];
         foreach ($columnFilters as $param => $column) {
@@ -26,6 +26,21 @@ class TaskFilters
             if ($values) {
                 $query->whereIn($column, $values);
             }
+        }
+
+        // Assignee — the special 'unassigned' marker matches tasks with no assignee.
+        $assignees = self::toArray($p['assigneeId'] ?? null);
+        if ($assignees) {
+            $wantUnassigned = in_array('unassigned', $assignees, true);
+            $ids = array_values(array_filter($assignees, fn ($v) => $v !== 'unassigned'));
+            $query->where(function ($sub) use ($ids, $wantUnassigned) {
+                if ($ids) {
+                    $sub->whereIn('assignee_id', $ids);
+                }
+                if ($wantUnassigned) {
+                    $sub->orWhereNull('assignee_id');
+                }
+            });
         }
 
         $labelIds = self::toArray($p['labelId'] ?? null);

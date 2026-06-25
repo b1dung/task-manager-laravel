@@ -8,10 +8,11 @@ export interface AuthUser {
   fullName: string
   avatarUrl: string | null
   role: string
+  /** Human-readable role name from the assigned RBAC role (e.g. "Owner", "PM"). */
+  roleName?: string | null
   /** Optional for sessions persisted before user preferences were introduced. */
   language?: import('@/i18n').AppLanguage
   appearance?: 'light' | 'midnight' | 'mint'
-  timezone?: import('@/lib/timezones').UserTimezone
   twoFactorEnabled?: boolean
 }
 

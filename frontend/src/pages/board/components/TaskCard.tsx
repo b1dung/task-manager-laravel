@@ -1,3 +1,4 @@
+import { useSiteTimezone } from '@/hooks/useSiteTimezone'
 import {useState, useRef, useEffect} from 'react'
 import {useTranslation} from 'react-i18next'
 import {createPortal} from 'react-dom'
@@ -12,9 +13,7 @@ import {Avatar} from '@/components/ui'
 import { TaskIcon, SubtaskIcon } from '@/components/ui/TaskIcons'
 import {useToast} from '@/hooks/useToast'
 import {useTaskStore} from '@/stores/useTaskStore'
-import {useAuthStore} from '@/stores/useAuthStore'
 import {cn, formatDate} from '@/lib/utils'
-import {DEFAULT_TIMEZONE} from '@/lib/timezones'
 
 // ─── Priority icon ────────────────────────────────────────────────────────────
 
@@ -200,6 +199,10 @@ function SubtaskRow({
     onClickName: (id: string) => void
 }) {
     const sc = STATUS_CFG[subtask.status] ?? STATUS_CFG.todo
+    // Columns are the source of truth — show the subtask's actual board column
+    // (e.g. "Fix"), with its colour; fall back to the status palette if absent.
+    const statusLabel = subtask.columnName ?? sc.label
+    const colColor = subtask.columnColor
 
     return (
         <div
@@ -228,8 +231,12 @@ function SubtaskRow({
                     </span>
                 )}
                 <div className="ml-auto flex items-center gap-1.5">
-          <span className={cn('shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded border', sc.cls)}>
-            {sc.label}
+          <span
+              className={cn('shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded border max-w-[90px] truncate', !colColor && sc.cls)}
+              style={colColor ? { backgroundColor: colColor + '1A', color: colColor, borderColor: colColor + '55' } : undefined}
+              title={statusLabel}
+          >
+            {statusLabel}
           </span>
                     <SubtaskAssigneePicker subtask={subtask} projectId={projectId}/>
                 </div>
@@ -449,7 +456,7 @@ interface TaskCardProps {
 }
 
 export function TaskCard({task, onClick, onSubtaskClick, isDragging, projectKey = 'TASK'}: TaskCardProps) {
-    const timezone = useAuthStore((state) => state.user?.timezone ?? DEFAULT_TIMEZONE)
+    const timezone = useSiteTimezone()
     const [isExpanded, setIsExpanded] = useState(false)
     // Read live task from store — re-renders when assignee or other fields change via socket/mutation
     const liveTask = useTaskStore((s) => s.tasks[task.id]) ?? task

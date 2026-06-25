@@ -22,7 +22,7 @@ class MyTasksController extends Controller
                 fn ($q) => $q->where('assignee_id', $userId),
             );
 
-        $query = $base()->with(['assignee', 'reporter', 'labels', 'project']);
+        $query = $base()->with(['assignee', 'reporter', 'labels', 'project', 'column']);
         if ($q = trim((string) $request->query('q', ''))) {
             $query->where('title', 'like', "%{$q}%");
         }

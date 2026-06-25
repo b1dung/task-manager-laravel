@@ -22,7 +22,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'email', 'password_hash', 'full_name', 'avatar_url', 'role', 'is_active',
-        'role_id', 'language', 'appearance', 'timezone', 'email_verified_at',
+        'role_id', 'language', 'appearance', 'email_verified_at',
         'two_factor_enabled', 'two_factor_secret',
     ];
 
@@ -80,10 +80,12 @@ class User extends Authenticatable
             'email' => $this->email,
             'fullName' => $this->full_name,
             'avatarUrl' => $this->avatar_url,
-            'role' => $this->role,
+            // Authoritative role comes from the assigned RBAC role; the legacy `role`
+            // enum column is stale after the migration, so fall back to it only if unset.
+            'role' => $this->assignedRole?->key ?? $this->role,
+            'roleName' => $this->assignedRole?->name,
             'language' => $this->language,
             'appearance' => $this->appearance,
-            'timezone' => $this->timezone,
             'twoFactorEnabled' => (bool) $this->two_factor_enabled,
         ];
     }

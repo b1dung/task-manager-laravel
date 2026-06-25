@@ -15,7 +15,9 @@ return new class extends Migration
             $table->string('password_hash');
             $table->string('full_name');
             $table->string('avatar_url')->nullable();
-            $table->enum('role', ['admin', 'manager', 'member', 'viewer'])->default('member');
+            $table->enum('role', [
+                'owner', 'admin', 'manager', 'pm', 'team_lead', 'member', 'client', 'viewer',
+            ])->default('member');
             $table->boolean('is_active')->default(true);
             $table->uuid('role_id')->nullable()->index(); // FK -> roles added later
             $table->string('language', 5)->default('en');

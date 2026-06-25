@@ -3,6 +3,8 @@ import type { Task } from './tasks'
 
 export interface MyTask extends Task {
   project?: { id: string; name: string; slug: string } | null
+  columnName?: string | null
+  columnColor?: string | null
 }
 
 export interface MyTaskStats {

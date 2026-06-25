@@ -27,6 +27,8 @@ class Task extends Model
             'due_date' => 'date',
             'estimated_hours' => 'decimal:2',
             'logged_hours' => 'decimal:2',
+            'qa_estimated_hours' => 'decimal:2',
+            'qa_logged_hours' => 'decimal:2',
             'archived_at' => 'datetime',
         ];
     }
@@ -67,6 +69,11 @@ class Task extends Model
         return $this->belongsTo(User::class, 'assignee_id');
     }
 
+    public function qaAssignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'qa_assignee_id');
+    }
+
     public function reporter(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reporter_id');
@@ -95,5 +102,10 @@ class Task extends Model
     public function labels(): BelongsToMany
     {
         return $this->belongsToMany(Label::class, 'task_labels');
+    }
+
+    public function requesters(): BelongsToMany
+    {
+        return $this->belongsToMany(Requester::class, 'task_requesters');
     }
 }

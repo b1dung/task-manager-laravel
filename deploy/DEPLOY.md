@@ -1,7 +1,7 @@
 # Deploy & Cutover — Laravel + React (Phase 12–13)
 
 ## A. Yêu cầu server
-PHP 8.4 (pdo_mysql, gd, zip, bcmath, pcntl, intl, redis), Composer, MySQL 8, Redis, Node 20 (chỉ để build FE), Apache (mod_proxy_fcgi/wstunnel/rewrite/ssl). Hoặc dùng Docker theo `docker-compose.prod.yml` (đã gói sẵn tất cả).
+PHP 8.3 (pdo_mysql, gd, zip, bcmath, pcntl, intl, redis), Composer, MySQL 8, Redis, Node 20 (chỉ để build FE), Apache (mod_proxy_fcgi/wstunnel/rewrite/ssl). Hoặc dùng Docker theo `docker-compose.prod.yml` (đã gói sẵn tất cả).
 
 ## B. Build & deploy (Docker — đơn giản nhất)
 ```bash

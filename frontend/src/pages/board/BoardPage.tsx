@@ -114,6 +114,14 @@ export function BoardPage() {
     if (allTasks.length) setTasks(allTasks)
   }, [allTasks, setTasks])
 
+  // Keep the modal in sync with the ?selectedIssue= URL param, so notification
+  // clicks and deep links open the task even when already on the board page.
+  const issueParam = searchParams.get('selectedIssue')
+  useEffect(() => {
+    setSelectedTaskId(issueParam)
+    setSelectedTaskFallback(issueParam ? (allTasks.find((tk) => tk.id === issueParam) ?? null) : null)
+  }, [issueParam, allTasks])
+
   // Simple stable grouping — never change columns mid-drag
   const tasksByColumn = useCallback(
     (colId: string) => allTasks.filter((t) => t.columnId === colId),
@@ -163,7 +171,7 @@ export function BoardPage() {
     : null
 
   // Socket realtime
-  useState(() => {
+  useEffect(() => {
     if (!socket) return
     const refresh = () => qc.invalidateQueries({ queryKey: ['tasks', projectId] })
     const handleTaskUpdated = (task: Task) => {
@@ -182,7 +190,7 @@ export function BoardPage() {
       socket.off('task:moved', refresh)
       socket.off('task:deleted', refresh)
     }
-  })
+  }, [socket, projectId, qc, updateTaskStore])
 
   const { mutate: addColumn } = useMutation({
     mutationFn: (input: { name: string; color: string }) =>
@@ -337,7 +345,7 @@ export function BoardPage() {
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="flex gap-4 overflow-x-auto scrollbar-thin pb-4 flex-1">
+        <div className="flex items-start gap-4 overflow-x-auto scrollbar-thin pb-4 flex-1 ">
           {columns.map((col) => (
             <BoardColumnView
               key={col.id}
@@ -354,7 +362,10 @@ export function BoardPage() {
               canEditColumn={canEditBoard}
             />
           ))}
-          {canEditBoard && <AddColumnCard onAdd={addColumn} />}
+          <div className="flex items-start">
+            {canEditBoard && <AddColumnCard onAdd={addColumn} />}
+          </div>
+
         </div>
 
         <DragOverlay dropAnimation={{ duration: 150, easing: 'ease' }}>

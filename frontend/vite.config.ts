@@ -16,14 +16,15 @@ export default defineConfig({
     port: 5174,
     host: true,
     proxy: {
-      // FE → Laravel API (php artisan serve / docker dev on :8000).
-      // Override with env VITE_PROXY_TARGET when the backend is elsewhere.
+      // FE → backend. Defaults to the dockerised stack's nginx on :8080
+      // (which fronts the Laravel API). Override with env VITE_PROXY_TARGET if elsewhere
+      // (e.g. http://localhost:8000 for a standalone `php artisan serve`).
       '/api': {
-        target: process.env.VITE_PROXY_TARGET ?? 'http://localhost:8000',
+        target: process.env.VITE_PROXY_TARGET ?? 'http://localhost:8080',
         changeOrigin: true,
       },
       '/uploads': {
-        target: process.env.VITE_PROXY_TARGET ?? 'http://localhost:8000',
+        target: process.env.VITE_PROXY_TARGET ?? 'http://localhost:8080',
         changeOrigin: true,
       },
     },

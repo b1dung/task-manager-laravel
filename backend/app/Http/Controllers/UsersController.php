@@ -16,7 +16,7 @@ class UsersController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = User::query()->orderBy('created_at', 'desc');
+        $query = User::query()->with('assignedRole')->orderBy('created_at', 'desc');
         if ($q = trim((string) $request->query('q', ''))) {
             $query->where(fn ($sub) => $sub->where('full_name', 'like', "%{$q}%")->orWhere('email', 'like', "%{$q}%"));
         }
@@ -62,7 +62,6 @@ class UsersController extends Controller
             'isActive' => ['nullable', 'boolean'],
             'language' => ['nullable', 'in:en,vi,ja'],
             'appearance' => ['nullable', 'in:light,midnight,mint'],
-            'timezone' => ['nullable', 'string'],
         ]);
 
         $user = User::findOrFail($id);
@@ -70,7 +69,7 @@ class UsersController extends Controller
 
         foreach ([
             'fullName' => 'full_name', 'email' => 'email', 'language' => 'language',
-            'appearance' => 'appearance', 'timezone' => 'timezone',
+            'appearance' => 'appearance',
         ] as $in => $col) {
             if ($request->has($in)) {
                 $user->{$col} = $data[$in];

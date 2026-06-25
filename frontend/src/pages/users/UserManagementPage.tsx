@@ -342,7 +342,7 @@ function InviteModal({ open, roles, onClose }: { open: boolean; roles: Role[]; o
           <>
             <div className="space-y-1.5">
               <label className={labelCls}><Mail className="w-3.5 h-3.5" /> {t('users.inviteEmailLabel')}</label>
-              <input className={inputCls} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@taskboard.dev" />
+              <input className={inputCls} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('users.emailPlaceholder')} />
             </div>
             <div className="space-y-1.5">
               <label className={labelCls}><Shield className="w-3.5 h-3.5" /> {t('users.roleLabel')}</label>
@@ -429,8 +429,8 @@ function CreateUserModal({ open, roles, onClose }: { open: boolean; roles: Role[
           <input className={inputCls} value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t('users.fullNamePlaceholder')} />
         </div>
         <div className="space-y-1.5">
-          <label className={labelCls}><Mail className="w-3.5 h-3.5" /> Email</label>
-          <input className={inputCls} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@taskboard.dev" />
+          <label className={labelCls}><Mail className="w-3.5 h-3.5" /> {t('users.colEmail')}</label>
+          <input className={inputCls} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('users.emailPlaceholder')} />
         </div>
         <div className="space-y-1.5">
           <label className={labelCls}><Lock className="w-3.5 h-3.5" /> {t('users.passwordLabel')}</label>
@@ -529,7 +529,7 @@ function EditUserModal({ open, userId, roles, onClose }: { open: boolean; userId
               <input className={inputCls} value={fullName} onChange={(e) => setFullName(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <label className={labelCls}><Mail className="w-3.5 h-3.5" /> Email</label>
+              <label className={labelCls}><Mail className="w-3.5 h-3.5" /> {t('users.colEmail')}</label>
               <input className={inputCls} type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div className="space-y-1.5">

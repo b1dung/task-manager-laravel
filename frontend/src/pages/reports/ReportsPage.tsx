@@ -157,7 +157,7 @@ export function ReportsPage() {
           </select>
         )}
 
-        <Button variant="ghost" size="sm" onClick={reset}>Reset</Button>
+        <Button variant="ghost" size="sm" onClick={reset}>{t('filter.reset')}</Button>
       </div>
 
       {/* Charts */}

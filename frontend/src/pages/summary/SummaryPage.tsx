@@ -26,30 +26,20 @@ function getProjectKey(name: string): string {
     : name.slice(0, 5).toUpperCase()
 }
 
-const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
-  urgent: { label: 'Highest', color: '#ef4444' },
-  high: { label: 'High', color: '#f97316' },
-  medium: { label: 'Medium', color: '#eab308' },
-  low: { label: 'Low', color: '#3b82f6' },
-  lowest: { label: 'Lowest', color: '#6b7280' },
+const PRIORITY_CONFIG: Record<string, { color: string }> = {
+  urgent: { color: '#ef4444' },
+  high: { color: '#f97316' },
+  medium: { color: '#eab308' },
+  low: { color: '#3b82f6' },
+  lowest: { color: '#6b7280' },
 }
 const PRIORITY_ORDER = ['urgent', 'high', 'medium', 'low', 'lowest']
 
-const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
-  task: { label: 'Task', color: '#3b82f6' },
-  subtask: { label: 'Sub task', color: '#8b5cf6' },
+const TYPE_CONFIG: Record<string, { color: string }> = {
+  task: { color: '#3b82f6' },
+  subtask: { color: '#8b5cf6' },
 }
 const TYPE_ORDER = ['task', 'subtask']
-
-const ACTION_LABEL: Record<string, string> = {
-  created: 'created',
-  updated: 'updated',
-  deleted: 'deleted',
-  moved: 'moved',
-  commented: 'commented on',
-  assigned: 'assigned',
-  status_changed: 'changed status of',
-}
 
 // ─── Page ───────────────────────────────────────────────────────────────────
 
@@ -87,10 +77,10 @@ export function SummaryPage() {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-            <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} /> Refresh
+            <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} /> {t('summary.refresh')}
           </Button>
           <Button variant="outline" size="sm" onClick={() => window.print()}>
-            <Download className="w-4 h-4" /> Export Report
+            <Download className="w-4 h-4" /> {t('summary.exportReport')}
           </Button>
         </div>
       </div>
@@ -103,17 +93,17 @@ export function SummaryPage() {
           ) : (
             <>
               <KpiCard icon={<CheckCircle2 />} color="text-success" value={data?.kpis.completed ?? 0}
-                label="Completed" hint="Completed within last 7 days." />
+                label={t('summary.completed')} hint={t('summary.completedHint')} />
               <KpiCard icon={<RefreshCcw />} color="text-info" value={data?.kpis.updated ?? 0}
-                label="Updated" hint="Updated within last 7 days." />
+                label={t('summary.updated')} hint={t('summary.updatedHint')} />
               <KpiCard icon={<PlusCircle />} color="text-accent" value={data?.kpis.created ?? 0}
-                label="Created" hint="Created within last 7 days." />
+                label={t('summary.created')} hint={t('summary.createdHint')} />
               <KpiCard icon={<Clock />} color="text-warning" value={data?.kpis.dueSoon ?? 0}
-                label="Due Soon" hint="Tasks due within 7 days." />
+                label={t('summary.dueSoon')} hint={t('summary.dueSoonHint')} />
               <KpiCard icon={<AlertTriangle />} color="text-danger" value={data?.kpis.overdue ?? 0}
-                label="Overdue" hint="Tasks overdue." />
+                label={t('summary.overdue')} hint={t('summary.overdueHint')} />
               <KpiCard icon={<Ban />} color="text-fg-muted" value={data?.kpis.blocked ?? 0}
-                label="Blocked" hint="Tasks blocked." />
+                label={t('summary.blocked')} hint={t('summary.blockedHint')} />
             </>
           )}
         </div>
@@ -168,6 +158,7 @@ function Card({ title, description, children, className }: {
 // ─── Status Overview (donut) ────────────────────────────────────────────────
 
 function StatusOverview({ data, loading }: { data?: ProjectSummary; loading: boolean }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { projectId = '' } = useParams<{ projectId: string }>()
   const slices = (data?.statusOverview ?? []).map((s) => ({
@@ -184,11 +175,11 @@ function StatusOverview({ data, loading }: { data?: ProjectSummary; loading: boo
   }
 
   return (
-    <Card title="Status Overview" description="Click a column to see its tasks.">
+    <Card title={t('summary.statusOverview')} description={t('summary.statusOverviewDesc')}>
       {loading ? (
         <Skeleton className="h-64" />
       ) : slices.length === 0 ? (
-        <EmptyState title="No tasks yet" />
+        <EmptyState title={t('myTasks.emptyTitle')} />
       ) : (
         <div className="flex items-center gap-4">
           <div className="relative shrink-0" style={{ width: 300, height: 300 }}>
@@ -207,7 +198,7 @@ function StatusOverview({ data, loading }: { data?: ProjectSummary; loading: boo
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
               <span className="text-2xl font-bold text-fg">{total}</span>
-              <span className="text-[14px] text-fg-subtle">Total Work Items</span>
+              <span className="text-[14px] text-fg-subtle">{t('summary.totalWorkItems')}</span>
             </div>
           </div>
           <div className="flex-1 min-w-0 max-h-52 overflow-y-auto scrollbar-thin space-y-2.5 pr-1">
@@ -231,16 +222,17 @@ function StatusOverview({ data, loading }: { data?: ProjectSummary; loading: boo
 function RecentActivities({ data, loading, projectKey }: {
   data?: ProjectSummary; loading: boolean; projectKey: string
 }) {
+  const { t } = useTranslation()
   const timezone = useSiteTimezone()
   const items = data?.recentActivities ?? []
   return (
-    <Card title="Recent Activities" description="Latest changes across the project.">
+    <Card title={t('summary.recentActivities')} description={t('summary.recentActivitiesDesc')}>
       {loading ? (
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 rounded-lg" />)}
         </div>
       ) : items.length === 0 ? (
-        <EmptyState title="No recent activity" />
+        <EmptyState title={t('summary.noRecentActivity')} />
       ) : (
         <div className="max-h-[500px] overflow-y-auto scrollbar-thin space-y-3 pr-1">
           {items.map((a) => {
@@ -250,8 +242,8 @@ function RecentActivities({ data, loading, projectKey }: {
                 <Avatar name={a.userName ?? '?'} avatarUrl={a.userAvatar} size="sm" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-fg leading-snug">
-                    <span className="font-medium">{a.userName ?? 'Someone'}</span>{' '}
-                    <span className="text-fg-muted">{ACTION_LABEL[a.action] ?? a.action}</span>{' '}
+                    <span className="font-medium">{a.userName ?? t('summary.someone')}</span>{' '}
+                    <span className="text-fg-muted">{t('activity.actions.' + a.action, { defaultValue: a.action })}</span>{' '}
                     {taskRef && <span className="font-medium text-accent">{taskRef}</span>}
                     {a.taskTitle && <span className="text-fg-muted"> · {a.taskTitle}</span>}
                   </p>
@@ -271,15 +263,16 @@ function RecentActivities({ data, loading, projectKey }: {
 // ─── Priority Distribution ──────────────────────────────────────────────────
 
 function PriorityDistribution({ data, loading }: { data?: ProjectSummary; loading: boolean }) {
+  const { t } = useTranslation()
   const map = new Map((data?.priorityDistribution ?? []).map((p) => [p.priority, p.count]))
   const bars = PRIORITY_ORDER.map((key) => ({
-    name: PRIORITY_CONFIG[key].label,
+    name: t('priority.' + key),
     count: map.get(key) ?? 0,
     color: PRIORITY_CONFIG[key].color,
   }))
 
   return (
-    <Card title="Priority Distribution" description="Tasks grouped by priority.">
+    <Card title={t('summary.priorityDistribution')} description={t('summary.priorityDistributionDesc')}>
       {loading ? (
         <Skeleton className="h-56" />
       ) : (
@@ -303,13 +296,14 @@ function PriorityDistribution({ data, loading }: { data?: ProjectSummary; loadin
 // ─── Task Types ─────────────────────────────────────────────────────────────
 
 function TaskTypes({ data, loading }: { data?: ProjectSummary; loading: boolean }) {
+  const { t } = useTranslation()
   const map = new Map((data?.taskTypes ?? []).map((t) => [t.type, t.count]))
   const total = data?.total ?? 0
   const rows = TYPE_ORDER
-    .map((key) => ({ key, label: TYPE_CONFIG[key].label, color: TYPE_CONFIG[key].color, count: map.get(key) ?? 0 }))
+    .map((key) => ({ key, label: t('summary.type.' + key), color: TYPE_CONFIG[key].color, count: map.get(key) ?? 0 }))
 
   return (
-    <Card title="Task Types" description="Distribution by issue type.">
+    <Card title={t('summary.taskTypes')} description={t('summary.taskTypesDesc')}>
       {loading ? (
         <Skeleton className="h-56" />
       ) : (
@@ -338,15 +332,16 @@ function TaskTypes({ data, loading }: { data?: ProjectSummary; loading: boolean 
 // ─── Team Workload ──────────────────────────────────────────────────────────
 
 function TeamWorkload({ data, loading }: { data?: ProjectSummary; loading: boolean }) {
+  const { t } = useTranslation()
   const members = data?.teamWorkload ?? []
   return (
-    <Card title="Team Workload" description="Assigned vs completed per developer.">
+    <Card title={t('summary.teamWorkload')} description={t('summary.teamWorkloadDesc')}>
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 rounded-lg" />)}
         </div>
       ) : members.length === 0 ? (
-        <EmptyState title="No assigned tasks" />
+        <EmptyState title={t('summary.noAssignedTasks')} />
       ) : (
         <div className="max-h-96 overflow-y-auto scrollbar-thin grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pr-1">
           {members.map((m) => {
@@ -358,7 +353,7 @@ function TeamWorkload({ data, loading }: { data?: ProjectSummary; loading: boole
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-fg truncate">{m.fullName}</p>
                     <p className="text-[11px] text-fg-subtle">
-                      {m.completed}/{m.assigned} completed
+                      {t('summary.completedCount', { completed: m.completed, assigned: m.assigned })}
                     </p>
                   </div>
                   <span className="text-sm font-semibold text-accent">{pct}%</span>

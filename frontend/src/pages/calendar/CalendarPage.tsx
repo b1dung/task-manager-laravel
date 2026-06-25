@@ -30,25 +30,25 @@ const PRIORITY_ICON: Record<string, string> = {
 }
 
 // status → accent color (spec: Delivered green, Review purple, In Progress blue, To Do gray)
-const STATUS_STYLE: Record<string, { bar: string; label: string }> = {
-  todo: { bar: '#6b7280', label: 'To Do' },
-  in_progress: { bar: '#3b82f6', label: 'In Progress' },
-  in_review: { bar: '#8b5cf6', label: 'Review' },
-  done: { bar: '#10b981', label: 'Delivered' },
+const STATUS_STYLE: Record<string, { bar: string }> = {
+  todo: { bar: '#6b7280' },
+  in_progress: { bar: '#3b82f6' },
+  in_review: { bar: '#8b5cf6' },
+  done: { bar: '#10b981' },
 }
 
 const PRIORITY_OPTS = [
-  { value: 'urgent', label: 'Highest' },
-  { value: 'high', label: 'High' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'low', label: 'Low' },
-  { value: 'lowest', label: 'Lowest' },
+  { value: 'urgent' },
+  { value: 'high' },
+  { value: 'medium' },
+  { value: 'low' },
+  { value: 'lowest' },
 ]
 const STATUS_OPTS = [
-  { value: 'todo', label: 'To Do' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'in_review', label: 'Review' },
-  { value: 'done', label: 'Delivered' },
+  { value: 'todo' },
+  { value: 'in_progress' },
+  { value: 'in_review' },
+  { value: 'done' },
 ]
 
 type ViewMode = 'month' | 'week' | 'agenda'

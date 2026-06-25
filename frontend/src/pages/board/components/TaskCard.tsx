@@ -17,18 +17,20 @@ import {cn, formatDate} from '@/lib/utils'
 
 // ─── Priority icon ────────────────────────────────────────────────────────────
 
-const PRIORITY_ICON: Record<string, { svg: string; label: string }> = {
-    urgent: {svg: '/priority/highest_new.svg', label: 'Urgent'},
-    high:   {svg: '/priority/high_new.svg',    label: 'High'},
-    medium: {svg: '/priority/medium_new.svg',  label: 'Medium'},
-    low:    {svg: '/priority/low_new.svg',     label: 'Low'},
-    lowest: {svg: '/priority/lowest_new.svg',  label: 'Lowest'},
+const PRIORITY_ICON: Record<string, { svg: string }> = {
+    urgent: {svg: '/priority/highest_new.svg'},
+    high:   {svg: '/priority/high_new.svg'},
+    medium: {svg: '/priority/medium_new.svg'},
+    low:    {svg: '/priority/low_new.svg'},
+    lowest: {svg: '/priority/lowest_new.svg'},
 }
 
 function PriorityIcon({priority}: { priority: string }) {
+    const { t } = useTranslation()
     const cfg = PRIORITY_ICON[priority] ?? PRIORITY_ICON.medium
+    const label = t('priority.' + priority)
     return (
-        <img src={cfg.svg} alt={cfg.label} title={cfg.label} width={14} height={14} className="shrink-0"/>
+        <img src={cfg.svg} alt={label} title={label} width={14} height={14} className="shrink-0"/>
     )
 }
 
@@ -52,11 +54,11 @@ function LabelChip({label}: { label: { id: string; name: string; color: string }
 
 // ─── Status badge config ──────────────────────────────────────────────────────
 
-const STATUS_CFG: Record<string, { label: string; cls: string }> = {
-    todo: {label: 'Todo', cls: 'text-fg-muted bg-bg-subtle border-border'},
-    in_progress: {label: 'Progress', cls: 'text-info bg-info/10 border-info/30'},
-    in_review: {label: 'Review', cls: 'text-warning bg-warning/10 border-warning/30'},
-    done: {label: 'Done', cls: 'text-success bg-success/10 border-success/30'},
+const STATUS_CFG: Record<string, { cls: string }> = {
+    todo: {cls: 'text-fg-muted bg-bg-subtle border-border'},
+    in_progress: {cls: 'text-info bg-info/10 border-info/30'},
+    in_review: {cls: 'text-warning bg-warning/10 border-warning/30'},
+    done: {cls: 'text-success bg-success/10 border-success/30'},
 }
 
 const DEFAULT_AVATAR = 'https://jira.mintoku.vn/assets/images/default-avatar.jpg'
@@ -198,10 +200,11 @@ function SubtaskRow({
     projectKey: string
     onClickName: (id: string) => void
 }) {
+    const { t } = useTranslation()
     const sc = STATUS_CFG[subtask.status] ?? STATUS_CFG.todo
     // Columns are the source of truth — show the subtask's actual board column
     // (e.g. "Fix"), with its colour; fall back to the status palette if absent.
-    const statusLabel = subtask.columnName ?? sc.label
+    const statusLabel = subtask.columnName ?? t('status.' + subtask.status)
     const colColor = subtask.columnColor
 
     return (

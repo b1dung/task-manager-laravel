@@ -395,11 +395,11 @@ export function BoardPage() {
 }
 
 const PRIORITY_OPTIONS = [
-  { value: 'urgent', label: 'Urgent', svg: '/priority/highest_new.svg' },
-  { value: 'high',   label: 'High',   svg: '/priority/high_new.svg' },
-  { value: 'medium', label: 'Medium', svg: '/priority/medium_new.svg' },
-  { value: 'low',    label: 'Low',    svg: '/priority/low_new.svg' },
-  { value: 'lowest', label: 'Lowest', svg: '/priority/lowest_new.svg' },
+  { value: 'urgent', svg: '/priority/highest_new.svg' },
+  { value: 'high',   svg: '/priority/high_new.svg' },
+  { value: 'medium', svg: '/priority/medium_new.svg' },
+  { value: 'low',    svg: '/priority/low_new.svg' },
+  { value: 'lowest', svg: '/priority/lowest_new.svg' },
 ]
 
 function AddTaskModal({
@@ -434,7 +434,7 @@ function AddTaskModal({
         <Input
           {...register('title', { required: t('board.titleRequired') })}
           label={`${t('board.titleLabel')} *`}
-          placeholder="VD: Fix login bug"
+          placeholder={t('board.taskTitlePlaceholder')}
           error={errors.title?.message}
           autoFocus
         />

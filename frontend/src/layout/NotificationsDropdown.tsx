@@ -187,7 +187,7 @@ export function NotificationsDropdown() {
                         </p>
                       </div>
                       {!n.readAt && <span className="w-2 h-2 rounded-full bg-accent mt-1.5 shrink-0" />}
-                      {!linkable && <span className="sr-only">không liên kết</span>}
+                      {!linkable && <span className="sr-only">{t('notifications.notLinked')}</span>}
                     </button>
                   )
                 })}

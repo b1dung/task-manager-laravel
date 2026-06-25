@@ -120,7 +120,7 @@ export function AccountPage() {
       setUser({ ...user!, twoFactorEnabled: true })
       setTwoFactorSetup(null)
       setTwoFactorCode('')
-      toast.success('Đã bật xác thực hai lớp')
+      toast.success(t('account.twoFactorEnabled'))
     },
   })
   const disableTwoFactor = useMutation({
@@ -128,7 +128,7 @@ export function AccountPage() {
     onSuccess: () => {
       setUser({ ...user!, twoFactorEnabled: false })
       setTwoFactorCode('')
-      toast.success('Đã tắt xác thực hai lớp')
+      toast.success(t('account.twoFactorDisabled'))
     },
   })
   const exportData = useMutation({
@@ -192,7 +192,7 @@ export function AccountPage() {
               <input className={inputCls} value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t('account.namePlaceholder')} />
             </div>
             <div className="space-y-1.5">
-              <label className={labelCls}><Mail className="w-3.5 h-3.5" /> Email</label>
+              <label className={labelCls}><Mail className="w-3.5 h-3.5" /> {t('auth.email')}</label>
               <input className={`${inputCls} bg-bg-subtle text-fg-muted cursor-not-allowed`} value={user.email} readOnly />
             </div>
             <div className="space-y-1.5">
@@ -242,33 +242,33 @@ export function AccountPage() {
           <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 border-b border-border">
             <div className="flex items-center gap-2">
               <MonitorSmartphone className="w-4 h-4 text-fg-muted" />
-              <h2 className="text-sm font-semibold text-fg">Phiên đăng nhập</h2>
+              <h2 className="text-sm font-semibold text-fg">{t('account.sessions')}</h2>
             </div>
             <Button variant="danger" size="sm" loading={revokingAll} disabled={!sessions.length} onClick={() => revokeAll()}>
-              Thu hồi tất cả
+              {t('account.revokeAll')}
             </Button>
           </div>
           <div className="divide-y divide-border">
             {sessions.map((session) => (
               <div key={session.id} className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
                 <div>
-                  <p className="text-sm text-fg">Phiên tạo {new Date(session.createdAt).toLocaleString()}</p>
-                  <p className="text-xs text-fg-muted">Hết hạn {new Date(session.expiresAt).toLocaleString()}</p>
+                  <p className="text-sm text-fg">{t('account.sessionCreated', { time: new Date(session.createdAt).toLocaleString() })}</p>
+                  <p className="text-xs text-fg-muted">{t('account.sessionExpires', { time: new Date(session.expiresAt).toLocaleString() })}</p>
                 </div>
-                <Button variant="ghost" size="sm" disabled={revokingSession} onClick={() => revokeSession(session.id)}>Thu hồi</Button>
+                <Button variant="ghost" size="sm" disabled={revokingSession} onClick={() => revokeSession(session.id)}>{t('account.revoke')}</Button>
               </div>
             ))}
-            {!sessions.length && <p className="px-4 py-4 sm:px-6 text-sm text-fg-muted">Không có refresh session đang hoạt động.</p>}
+            {!sessions.length && <p className="px-4 py-4 sm:px-6 text-sm text-fg-muted">{t('account.noSessions')}</p>}
           </div>
         </div>
 
         <div className="rounded-xl border border-border bg-bg-surface lg:col-span-2">
           <div className="flex items-center gap-2 px-4 py-3 sm:px-6 border-b border-border">
             <Archive className="w-4 h-4 text-fg-muted" />
-            <h2 className="text-sm font-semibold text-fg">Dữ liệu cá nhân</h2>
+            <h2 className="text-sm font-semibold text-fg">{t('account.personalData')}</h2>
           </div>
           <div className="p-4 sm:p-6">
-            <Button size="sm" loading={exportData.isPending} onClick={() => exportData.mutate()}>Tải dữ liệu của tôi (JSON)</Button>
+            <Button size="sm" loading={exportData.isPending} onClick={() => exportData.mutate()}>{t('account.exportMyData')}</Button>
           </div>
         </div>
 
@@ -276,22 +276,22 @@ export function AccountPage() {
         <div className="rounded-xl border border-border bg-bg-surface lg:col-span-2">
           <div className="flex items-center gap-2 px-4 py-3 sm:px-6 border-b border-border">
             <Shield className="w-4 h-4 text-fg-muted" />
-            <h2 className="text-sm font-semibold text-fg">Xác thực hai lớp (TOTP)</h2>
+            <h2 className="text-sm font-semibold text-fg">{t('account.twoFactorTitle')}</h2>
           </div>
           <div className="p-4 sm:p-6 space-y-4">
-            <p className="text-sm text-fg-muted">Trạng thái: {user.twoFactorEnabled ? 'Đang bật' : 'Đang tắt'}</p>
+            <p className="text-sm text-fg-muted">{t('account.twoFactorStatus', { status: user.twoFactorEnabled ? t('account.enabled') : t('account.disabled') })}</p>
             {twoFactorSetup && (
               <div className="rounded-lg bg-bg-subtle p-3 space-y-2">
-                <p className="text-xs text-fg-muted">Nhập secret sau vào ứng dụng Authenticator:</p>
+                <p className="text-xs text-fg-muted">{t('account.twoFactorSecretHelp')}</p>
                 <code className="block break-all text-sm text-fg">{twoFactorSetup.secret}</code>
               </div>
             )}
             {(twoFactorSetup || user.twoFactorEnabled) && (
               <input className={inputCls} inputMode="numeric" maxLength={6} value={twoFactorCode} onChange={(event) => setTwoFactorCode(event.target.value.replace(/\D/g, ''))} placeholder="000000" autoComplete="one-time-code" />
             )}
-            {!user.twoFactorEnabled && !twoFactorSetup && <Button size="sm" loading={setupTwoFactor.isPending} onClick={() => setupTwoFactor.mutate()}>Thiết lập 2FA</Button>}
-            {twoFactorSetup && <Button size="sm" loading={enableTwoFactor.isPending} disabled={twoFactorCode.length !== 6} onClick={() => enableTwoFactor.mutate()}>Xác nhận và bật</Button>}
-            {user.twoFactorEnabled && <Button variant="danger" size="sm" loading={disableTwoFactor.isPending} disabled={twoFactorCode.length !== 6} onClick={() => disableTwoFactor.mutate()}>Tắt 2FA</Button>}
+            {!user.twoFactorEnabled && !twoFactorSetup && <Button size="sm" loading={setupTwoFactor.isPending} onClick={() => setupTwoFactor.mutate()}>{t('account.setup2fa')}</Button>}
+            {twoFactorSetup && <Button size="sm" loading={enableTwoFactor.isPending} disabled={twoFactorCode.length !== 6} onClick={() => enableTwoFactor.mutate()}>{t('account.confirmEnable2fa')}</Button>}
+            {user.twoFactorEnabled && <Button variant="danger" size="sm" loading={disableTwoFactor.isPending} disabled={twoFactorCode.length !== 6} onClick={() => disableTwoFactor.mutate()}>{t('account.disable2fa')}</Button>}
           </div>
         </div>
         )}

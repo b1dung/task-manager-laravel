@@ -19,15 +19,12 @@ import { useToast } from '@/hooks/useToast'
 import { formatZonedDate } from '@/lib/timezones'
 import { cn } from '@/lib/utils'
 
-const PRIORITY_ICON: Record<string, { svg: string; label: string }> = {
-  urgent: { svg: '/priority/highest_new.svg', label: 'Urgent' },
-  high: { svg: '/priority/high_new.svg', label: 'High' },
-  medium: { svg: '/priority/medium_new.svg', label: 'Medium' },
-  low: { svg: '/priority/low_new.svg', label: 'Low' },
-  lowest: { svg: '/priority/lowest_new.svg', label: 'Lowest' },
-}
-const STATUS_LABEL: Record<string, string> = {
-  todo: 'To Do', in_progress: 'In Progress', in_review: 'In Review', done: 'Done',
+const PRIORITY_ICON: Record<string, { svg: string }> = {
+  urgent: { svg: '/priority/highest_new.svg' },
+  high: { svg: '/priority/high_new.svg' },
+  medium: { svg: '/priority/medium_new.svg' },
+  low: { svg: '/priority/low_new.svg' },
+  lowest: { svg: '/priority/lowest_new.svg' },
 }
 const PAGE_SIZE = 30
 
@@ -74,7 +71,8 @@ function InlineMenu({ trigger, width = 200, children }: {
 }
 
 function UserCell({ user }: { user: Task['assignee'] }) {
-  if (!user) return <span className="text-xs text-fg-subtle">Unassigned</span>
+  const { t } = useTranslation()
+  if (!user) return <span className="text-xs text-fg-subtle">{t('common.unassigned')}</span>
   return (
     <span className="flex items-center gap-1.5 min-w-0">
       <Avatar name={user.fullName} avatarUrl={user.avatarUrl} size="xs" className="shrink-0" />
@@ -86,6 +84,7 @@ function UserCell({ user }: { user: Task['assignee'] }) {
 function AssigneeCell({ task, members, disabled, onPick }: {
   task: Task; members: ProjectMember[]; disabled: boolean; onPick: (userId: string | null) => void
 }) {
+  const { t } = useTranslation()
   const user = task.assignee ?? members.find((m) => m.userId === task.assigneeId)?.user ?? null
   if (disabled) return <UserCell user={user} />
   return (
@@ -93,7 +92,7 @@ function AssigneeCell({ task, members, disabled, onPick }: {
       {(close) => (
         <>
           <button onClick={() => { onPick(null); close() }} className="w-full text-left px-3 py-2 text-sm text-fg-muted hover:bg-bg-subtle">
-            Unassigned
+            {t('common.unassigned')}
           </button>
           {members.map((m) => (
             <button key={m.userId} onClick={() => { onPick(m.userId); close() }}
@@ -112,9 +111,10 @@ function AssigneeCell({ task, members, disabled, onPick }: {
 function StatusCell({ task, columns, disabled, onPick }: {
   task: Task; columns: BoardColumn[]; disabled: boolean; onPick: (columnId: string) => void
 }) {
+  const { t } = useTranslation()
   const col = columns.find((c) => c.id === task.columnId)
   const color = col?.color ?? '#6b7280'
-  const label = col?.name ?? STATUS_LABEL[task.status] ?? task.status
+  const label = col?.name ?? t('status.' + task.status)
   const badge = (
     <span className="inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-xs font-medium whitespace-nowrap"
       style={{ color, borderColor: `${color}55`, backgroundColor: `${color}1a` }}>
@@ -206,11 +206,11 @@ export function ListPage() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-base font-semibold text-fg">{t('nav.list')}</h1>
-            <p className="text-xs text-fg-muted mt-0.5">{project?.name ?? t('nav.list')} · {meta?.total ?? 0} task</p>
+            <p className="text-xs text-fg-muted mt-0.5">{project?.name ?? t('nav.list')} · {t('board.tasksCount', { count: meta?.total ?? 0 })}</p>
           </div>
           {columnFilter && (
             <button onClick={clearColumn} className="inline-flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/10 px-2.5 h-8 text-xs text-accent shrink-0">
-              {columnName ?? 'Column'} <X className="w-3.5 h-3.5" />
+              {columnName ?? t('filter.status')} <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
@@ -221,20 +221,21 @@ export function ListPage() {
         {isLoading ? (
           <div className="space-y-2">{[...Array(8)].map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}</div>
         ) : rows.length === 0 ? (
-          <EmptyState icon={<ListTodo className="w-12 h-12" />} title="No tasks" />
+          <EmptyState icon={<ListTodo className="w-12 h-12" />} title={t('myTasks.emptyTitle')} />
         ) : (
           <div className="rounded-card border border-border overflow-hidden">
             <div className="overflow-x-auto scrollbar-thin">
               <table className="w-full text-sm">
               <thead>
                 <tr className="bg-bg-subtle text-left text-xs text-fg-muted">
-                  <TableHeader>Work</TableHeader><TableHeader>Assignee</TableHeader><TableHeader>Reporter</TableHeader><TableHeader>Priority</TableHeader>
-                  <TableHeader>Status</TableHeader><TableHeader>Created</TableHeader><TableHeader>Updated</TableHeader><TableHeader>Due date</TableHeader>
+                  <TableHeader>{t('list.colWork')}</TableHeader><TableHeader>{t('taskDetail.fAssignee')}</TableHeader><TableHeader>{t('taskDetail.reporter')}</TableHeader><TableHeader>{t('taskDetail.fPriority')}</TableHeader>
+                  <TableHeader>{t('taskDetail.fStatus')}</TableHeader><TableHeader>{t('list.colCreated')}</TableHeader><TableHeader>{t('list.colUpdated')}</TableHeader><TableHeader>{t('taskDetail.fDueDate')}</TableHeader>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((tk) => {
                   const pr = PRIORITY_ICON[tk.priority] ?? PRIORITY_ICON.medium
+                  const prLabel = t('priority.' + tk.priority)
                   const overdue = tk.dueDate && tk.dueDate < new Date().toISOString().slice(0, 10) && tk.status !== 'done'
                   return (
                     <tr key={tk.id} className="border-t border-border hover:bg-bg-subtle/40">
@@ -251,7 +252,7 @@ export function ListPage() {
                       <td className="px-4 py-2.5"><UserCell user={tk.reporter} /></td>
                       <td className="px-4 py-2.5">
                         <span className="inline-flex items-center gap-1.5 text-xs text-fg-muted whitespace-nowrap">
-                          <img src={pr.svg} width={14} height={14} alt={pr.label} className="shrink-0" />{pr.label}
+                          <img src={pr.svg} width={14} height={14} alt={prLabel} className="shrink-0" />{prLabel}
                         </span>
                       </td>
                       <td className="px-4 py-2.5">
@@ -276,7 +277,7 @@ export function ListPage() {
                     type="button"
                     onClick={() => setPage(Math.max(1, page - 1))}
                     disabled={meta.page <= 1}
-                    aria-label="Previous page"
+                    aria-label={t('list.prevPage')}
                     className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border text-fg-muted hover:bg-bg-subtle hover:text-fg disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -288,7 +289,7 @@ export function ListPage() {
                     type="button"
                     onClick={() => setPage(Math.min(meta.totalPages, page + 1))}
                     disabled={meta.page >= meta.totalPages}
-                    aria-label="Next page"
+                    aria-label={t('list.nextPage')}
                     className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border text-fg-muted hover:bg-bg-subtle hover:text-fg disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <ChevronRight className="h-4 w-4" />

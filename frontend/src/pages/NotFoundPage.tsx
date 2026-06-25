@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 // Styles ported from 404_preview.html, scoped under `.nf404` so the global
 // reset (`*`) and generic class names don't leak into the rest of the app.
@@ -78,7 +79,8 @@ const css = `
 
 // Robot illustration kept as raw SVG markup (no interactivity needed) to avoid
 // hand-converting dozens of kebab-case SVG attributes to JSX.
-const robotSvg = `
+function robotSvg(dashboardLabel: string) {
+  return `
 <svg viewBox="0 0 320 260" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
   <defs>
     <linearGradient id="nfBG" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e8edf5"/><stop offset="100%" stop-color="#c8d4e8"/></linearGradient>
@@ -118,15 +120,17 @@ const robotSvg = `
   <text x="56" y="72" font-family="Georgia,serif" font-size="12" fill="#9b6de8" opacity=".45" font-weight="bold">?</text>
   <line x1="285" y1="180" x2="285" y2="248" stroke="#94a8cc" stroke-width="3" stroke-linecap="round"/>
   <rect x="262" y="183" width="48" height="20" rx="4" fill="#4f8ef7" opacity=".85"/>
-  <text x="286" y="197" text-anchor="middle" font-family="monospace" font-size="8.5" fill="white" font-weight="bold">DASHBOARD</text>
+  <text x="286" y="197" text-anchor="middle" font-family="monospace" font-size="8.5" fill="white" font-weight="bold">${dashboardLabel}</text>
   <rect x="258" y="208" width="52" height="20" rx="4" fill="#e85d8a" opacity=".75" transform="rotate(-7 284 218)"/>
   <text x="284" y="222" text-anchor="middle" font-family="monospace" font-size="8.5" fill="white" font-weight="bold" transform="rotate(-7 284 222)">???</text>
   <circle cx="92" cy="142" r="2" fill="#4f8ef7" opacity=".55"/>
   <circle cx="242" cy="136" r="2.2" fill="#9b6de8" opacity=".5"/>
   <circle cx="80" cy="200" r="1.5" fill="#4f8ef7" opacity=".4"/>
 </svg>`
+}
 
 export function NotFoundPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   return (
@@ -136,14 +140,14 @@ export function NotFoundPage() {
         <div className="blob1" />
         <div className="blob2" />
         <div className="card">
-          <div className="badge"><span className="dot" />HTTP 404 · Not Found</div>
+          <div className="badge"><span className="dot" />{t('notFound.badge')}</div>
           <div className="num">404</div>
-          <div className="illo" dangerouslySetInnerHTML={{ __html: robotSvg }} />
+          <div className="illo" dangerouslySetInnerHTML={{ __html: robotSvg(t('notFound.dashboardSign')) }} />
           <div className="divider" />
-          <h1>Trang không tồn tại</h1>
+          <h1>{t('notFound.title')}</h1>
           <p>
-            Đường dẫn bạn truy cập không tồn tại hoặc đã bị xóa.<br />
-            Hãy quay lại trang chủ hoặc kiểm tra lại đường dẫn.
+            {t('notFound.message1')}<br />
+            {t('notFound.message2')}
           </p>
           <div className="actions">
             <button className="btn-primary" onClick={() => navigate('/projects')}>
@@ -151,14 +155,14 @@ export function NotFoundPage() {
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                 <polyline points="9 22 9 12 15 12 15 22" />
               </svg>
-              Về Dashboard
+              {t('notFound.goDashboard')}
             </button>
             <button className="btn-outline" onClick={() => navigate(-1)}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="19" y1="12" x2="5" y2="12" />
                 <polyline points="12 19 5 12 12 5" />
               </svg>
-              Quay lại
+              {t('notFound.goBack')}
             </button>
           </div>
         </div>

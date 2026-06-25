@@ -1,9 +1,11 @@
 import { useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { authApi } from '@/api/auth'
 
 export function VerifyEmailPage() {
+  const { t } = useTranslation()
   const [params] = useSearchParams()
   const token = params.get('token') ?? ''
   const mutation = useMutation({ mutationFn: () => authApi.verifyEmail(token) })
@@ -17,13 +19,13 @@ export function VerifyEmailPage() {
   return (
     <div className="flex min-h-full items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-4 text-center">
-        <h1 className="text-2xl font-semibold text-fg">Xác thực email</h1>
+        <h1 className="text-2xl font-semibold text-fg">{t('password.verifyEmailTitle')}</h1>
         <p className="text-sm text-fg-muted">
-          {mutation.isPending && 'Đang xác thực…'}
-          {mutation.isSuccess && 'Email đã được xác thực.'}
-          {(mutation.isError || !token) && 'Liên kết không hợp lệ hoặc đã hết hạn.'}
+          {mutation.isPending && t('password.verifyingEmail')}
+          {mutation.isSuccess && t('password.emailVerified')}
+          {(mutation.isError || !token) && t('password.invalidLink')}
         </p>
-        <Link className="text-sm text-accent hover:underline" to="/login">Đăng nhập</Link>
+        <Link className="text-sm text-accent hover:underline" to="/login">{t('auth.login')}</Link>
       </div>
     </div>
   )

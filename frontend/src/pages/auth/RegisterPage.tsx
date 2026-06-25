@@ -7,10 +7,13 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { CheckCircle2, Clock, Mail } from 'lucide-react'
 import { authApi } from '@/api/auth'
 import { invitesApi } from '@/api/invites'
+import { usersApi } from '@/api/users'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { Button, Input, Spinner } from '@/components/ui'
 import { useToast } from '@/hooks/useToast'
 import { useTranslation } from 'react-i18next'
+import { AuthLanguagePicker } from './AuthLanguagePicker'
+import { currentAppLanguage } from '@/i18n'
 
 type FormData = { fullName: string; email: string; password: string }
 
@@ -54,7 +57,9 @@ export function RegisterPage() {
       ),
     onSuccess: (res) => {
       if (res.status === 'active') {
-        setAuth(res.user, res.accessToken, '')
+        const language = currentAppLanguage()
+        setAuth({ ...res.user, language }, res.accessToken, '')
+        if (res.user.language !== language) void usersApi.update(res.user.id, { language })
         navigate('/projects')
       } else {
         setSubmitted(true)
@@ -131,7 +136,7 @@ export function RegisterPage() {
           {...register('email')}
           label={t('auth.email')}
           type="email"
-          placeholder="you@example.com"
+          placeholder={t('auth.emailPlaceholder')}
           error={errors.email?.message}
           disabled={!!token}
           readOnly={!!token}
@@ -167,7 +172,12 @@ export function RegisterPage() {
 function CenteredCard({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-full items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-6">{children}</div>
+      <div className="w-full max-w-sm space-y-6">
+        {children}
+        <div className="flex justify-center">
+          <AuthLanguagePicker />
+        </div>
+      </div>
     </div>
   )
 }

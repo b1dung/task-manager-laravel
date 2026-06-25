@@ -17,13 +17,13 @@ const appearances: { value: ThemeKey; labelKey: string; icon: typeof Sun }[] = [
   { value: 'mint', labelKey: 'account.classic', icon: Waves },
 ]
 
-const languages: Array<{ value: AppLanguage; label: string }> = [
-  { value: 'en', label: 'English' },
-  { value: 'vi', label: 'Tiếng Việt' },
-  { value: 'ja', label: '日本語' },
+const languages: Array<{ value: AppLanguage; labelKey: string }> = [
+  { value: 'en', labelKey: 'common.langEn' },
+  { value: 'vi', labelKey: 'common.langVi' },
+  { value: 'ja', labelKey: 'common.langJa' },
 ]
 
-function LanguageFlag({ language, size = 30 }: { language: AppLanguage; size?: number }) {
+export function LanguageFlag({ language, size = 30 }: { language: AppLanguage; size?: number }) {
   const rawId = useId()
   const clipId = `flag-${rawId.replace(/:/g, '')}`
   const style = {
@@ -36,8 +36,8 @@ function LanguageFlag({ language, size = 30 }: { language: AppLanguage; size?: n
 
   if (language === 'vi') {
     return (
-      <svg viewBox="0 0 30 20" preserveAspectRatio="xMidYMid slice" style={style} aria-hidden>
-        <rect width="30" height="20" fill="#da251d" />
+      <svg viewBox="0 0 30 25" preserveAspectRatio="xMidYMid slice" style={style} aria-hidden>
+        <rect width="30" height="30" fill="#da251d" />
         <path fill="#ff0" d="M15 4l1.70 5.42h5.7l-4.61 3.35 1.76 5.42L15 14.84l-4.61 3.35 1.76-5.42-4.61-3.35h5.7z" />
       </svg>
     )
@@ -129,7 +129,7 @@ export function UserAccountMenu() {
       <div ref={ref} className="relative">
         <button
           type="button"
-          aria-label="User account menu"
+          aria-label={t('account.menu')}
           aria-haspopup="menu"
           aria-expanded={open}
           onClick={() => setOpen((value) => !value)}
@@ -170,7 +170,7 @@ export function UserAccountMenu() {
                   <span className="flex-1 text-left">{t('account.language')}</span>
                   <span className="flex items-center gap-1.5 text-xs text-fg-subtle">
                     <LanguageFlag language={selectedLanguage.value} size={20} />
-                    {selectedLanguage.label}
+                    {t(selectedLanguage.labelKey)}
                   </span>
                   <ChevronRight className={cn('h-3.5 w-3.5 transition-transform', languageOpen && 'rotate-90')} />
                 </button>
@@ -194,7 +194,7 @@ export function UserAccountMenu() {
                         )}
                       >
                         <LanguageFlag language={item.value} />
-                        <span className="flex-1 text-left">{item.label}</span>
+                        <span className="flex-1 text-left">{t(item.labelKey)}</span>
                         {language === item.value && <Check className="h-4 w-4" />}
                       </button>
                     ))}

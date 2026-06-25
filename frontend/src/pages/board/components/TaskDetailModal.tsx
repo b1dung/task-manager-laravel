@@ -52,35 +52,28 @@ interface TaskLink {
 
 type TabType = 'all' | 'comments' | 'history' | 'worklog'
 
-const LINK_TYPE_LABELS: Record<string, string> = {
-  blocks: 'blocks',
-  blocked_by: 'is blocked by',
-  relates_to: 'relates to',
+const LINK_TYPE_LABEL_KEYS: Record<string, string> = {
+  blocks: 'linkTypeBlocks',
+  blocked_by: 'linkTypeBlockedBy',
+  relates_to: 'linkTypeRelatesTo',
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; hexBg: string; hexColor: string }> = {
-  todo:        { label: 'To Do',       color: 'text-fg-muted',  bg: 'bg-bg-subtle',   hexBg: '#F4F5F7', hexColor: '#42526E' },
-  in_progress: { label: 'In Progress', color: 'text-info',      bg: 'bg-info/10',     hexBg: '#0052CC', hexColor: '#FFFFFF' },
-  in_review:   { label: 'In Review',   color: 'text-warning',   bg: 'bg-warning/10',  hexBg: '#6554C0', hexColor: '#FFFFFF' },
-  done:        { label: 'Done',        color: 'text-success',   bg: 'bg-success/10',  hexBg: '#00875A', hexColor: '#FFFFFF' },
+const STATUS_CONFIG: Record<string, { color: string; bg: string; hexBg: string; hexColor: string }> = {
+  todo:        { color: 'text-fg-muted',  bg: 'bg-bg-subtle',   hexBg: '#F4F5F7', hexColor: '#42526E' },
+  in_progress: { color: 'text-info',      bg: 'bg-info/10',     hexBg: '#0052CC', hexColor: '#FFFFFF' },
+  in_review:   { color: 'text-warning',   bg: 'bg-warning/10',  hexBg: '#6554C0', hexColor: '#FFFFFF' },
+  done:        { color: 'text-success',   bg: 'bg-success/10',  hexBg: '#00875A', hexColor: '#FFFFFF' },
 }
 
-const PRIORITY_CONFIG: Record<string, { label: string; color: string; svg: string; hexColor: string }> = {
-  urgent: { label: 'Urgent', color: 'text-danger',   svg: '/priority/highest_new.svg', hexColor: '#F15B50' },
-  high:   { label: 'High',   color: 'text-warning',  svg: '/priority/high_new.svg',    hexColor: '#F15B50' },
-  medium: { label: 'Medium', color: 'text-info',     svg: '/priority/medium_new.svg',  hexColor: '#E06C00' },
-  low:    { label: 'Low',    color: 'text-fg-muted', svg: '/priority/low_new.svg',     hexColor: '#4688EC' },
-  lowest: { label: 'Lowest', color: 'text-fg-subtle',svg: '/priority/lowest_new.svg',  hexColor: '#8899BB' },
+const PRIORITY_CONFIG: Record<string, { color: string; svg: string; hexColor: string }> = {
+  urgent: { color: 'text-danger',   svg: '/priority/highest_new.svg', hexColor: '#F15B50' },
+  high:   { color: 'text-warning',  svg: '/priority/high_new.svg',    hexColor: '#F15B50' },
+  medium: { color: 'text-info',     svg: '/priority/medium_new.svg',  hexColor: '#E06C00' },
+  low:    { color: 'text-fg-muted', svg: '/priority/low_new.svg',     hexColor: '#4688EC' },
+  lowest: { color: 'text-fg-subtle',svg: '/priority/lowest_new.svg',  hexColor: '#8899BB' },
 }
 
 const DEFAULT_AVATAR = 'https://jira.mintoku.vn/assets/images/default-avatar.jpg'
-
-const SUBTASK_STATUS: Record<string, { label: string; cls: string }> = {
-  todo:        { label: 'To Do',       cls: 'text-fg-muted bg-bg-subtle border-border' },
-  in_progress: { label: 'In Progress', cls: 'text-info bg-info/10 border-info/30' },
-  in_review:   { label: 'In Review',   cls: 'text-warning bg-warning/10 border-warning/30' },
-  done:        { label: 'Done',        cls: 'text-success bg-success/10 border-success/30' },
-}
 
 // ─── Time Helpers ─────────────────────────────────────────────────────────────
 
@@ -296,10 +289,10 @@ export function TaskDetailModal({ task, taskId, projectId, projectKey = 'TASK', 
             {/* Action buttons under title */}
             <div className="flex items-center gap-1.5 -mt-2">
               <button
-                title="Add child task"
+                title={tr('taskDetail.addChildTask')}
                 className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-fg-muted border border-border hover:border-accent/50 hover:text-accent transition-colors"
               >
-                <Plus className="w-3 h-3" /> Child
+                <Plus className="w-3 h-3" /> {tr('taskDetail.child')}
               </button>
             </div>
 
@@ -319,7 +312,7 @@ export function TaskDetailModal({ task, taskId, projectId, projectKey = 'TASK', 
             <div>
               <div className="flex gap-1 border-b border-border mb-4">
                 {(['all', 'comments', 'history', 'worklog'] as TabType[]).map((id) => {
-                  const labels = { all: 'All', comments: 'Comments', history: 'History', worklog: 'Work Log' }
+                  const labels = { all: tr('taskDetail.tabAll'), comments: tr('taskDetail.tabComments'), history: tr('taskDetail.tabHistory'), worklog: tr('taskDetail.tabWorklog') }
                   return (
                     <button
                       key={id}
@@ -422,7 +415,7 @@ function DetailHeader({ displayId, parentTask, projectKey = 'TASK', onClose, onO
         )}
         <button
           onClick={copyId}
-          title="Copy task ID"
+          title={tr('taskDetail.copyTaskId')}
           className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-bg-subtle border border-border hover:border-accent/50 hover:text-fg transition-colors font-mono shrink-0"
         >
           <TaskIcon size={12} />
@@ -433,13 +426,13 @@ function DetailHeader({ displayId, parentTask, projectKey = 'TASK', onClose, onO
       {/* Actions */}
       <div className="flex items-center gap-0.5">
         <button
-          title="Watch"
+          title={tr('taskDetail.watch')}
           className="h-7 w-7 flex items-center justify-center rounded-md text-fg-subtle hover:text-fg hover:bg-bg-subtle transition-colors"
         >
           <Eye className="w-3.5 h-3.5" />
         </button>
         <button
-          title="Share"
+          title={tr('taskDetail.share')}
           className="h-7 w-7 flex items-center justify-center rounded-md text-fg-subtle hover:text-fg hover:bg-bg-subtle transition-colors"
           onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success(tr('taskDetail.linkCopied')) }}
         >
@@ -454,15 +447,15 @@ function DetailHeader({ displayId, parentTask, projectKey = 'TASK', onClose, onO
           }
           align="right"
           items={[
-            { label: 'Copy link', icon: <Link2 className="w-4 h-4" />, onClick: () => navigator.clipboard.writeText(window.location.href) },
+            { label: tr('taskDetail.copyLink'), icon: <Link2 className="w-4 h-4" />, onClick: () => navigator.clipboard.writeText(window.location.href) },
             { label: tr('taskDetail.duplicate'), icon: <AlignLeft className="w-4 h-4" />, onClick: () => toast.info(tr('taskDetail.duplicateNotSupported')) },
-            { label: 'Archive', icon: <Lock className="w-4 h-4" />, onClick: () => onArchive?.(), disabled: !onArchive },
-            { label: 'Delete', icon: <Trash2 className="w-4 h-4" />, onClick: () => onDelete?.(), danger: true, disabled: !onDelete },
+            { label: tr('taskDetail.archiveConfirm'), icon: <Lock className="w-4 h-4" />, onClick: () => onArchive?.(), disabled: !onArchive },
+            { label: tr('common.delete'), icon: <Trash2 className="w-4 h-4" />, onClick: () => onDelete?.(), danger: true, disabled: !onDelete },
           ]}
         />
 
         <button
-          title="Open full page"
+          title={tr('taskDetail.openFullPage')}
           className="h-7 w-7 flex items-center justify-center rounded-md text-fg-subtle hover:text-fg hover:bg-bg-subtle transition-colors"
         >
           <ExternalLink className="w-3.5 h-3.5" />
@@ -621,7 +614,7 @@ function DescriptionEditor({ task, onSave }: { task: Task; onSave: (d: string) =
 
   const setLink = () => {
     const prev = editor?.getAttributes('link').href ?? ''
-    const url = window.prompt('URL:', prev)
+    const url = window.prompt(tr('taskDetail.urlPrompt'), prev)
     if (url === null) return
     if (!url) {
       editor?.chain().focus().extendMarkRange('link').unsetLink().run()
@@ -646,83 +639,83 @@ function DescriptionEditor({ task, onSave }: { task: Task; onSave: (d: string) =
 
   return (
     <div>
-      <p className="text-sm font-semibold text-fg mb-2">Description</p>
+      <p className="text-sm font-semibold text-fg mb-2">{tr('taskDetail.description')}</p>
 
       <div className="rounded-lg border border-border overflow-hidden focus-within:ring-2 focus-within:ring-accent transition-shadow">
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-border bg-bg-subtle">
-          <EditorToolbarBtn title="Undo" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()}>
+          <EditorToolbarBtn title={tr('taskDetail.toolbarUndo')} onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()}>
             <Undo className="w-3.5 h-3.5" />
           </EditorToolbarBtn>
-          <EditorToolbarBtn title="Redo" onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()}>
+          <EditorToolbarBtn title={tr('taskDetail.toolbarRedo')} onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()}>
             <Redo className="w-3.5 h-3.5" />
           </EditorToolbarBtn>
           <EditorToolbarSep />
 
-          <EditorToolbarBtn title="Bold" onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive('bold')}>
+          <EditorToolbarBtn title={tr('taskDetail.toolbarBold')} onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive('bold')}>
             <Bold className="w-3.5 h-3.5" />
           </EditorToolbarBtn>
-          <EditorToolbarBtn title="Italic" onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive('italic')}>
+          <EditorToolbarBtn title={tr('taskDetail.toolbarItalic')} onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive('italic')}>
             <Italic className="w-3.5 h-3.5" />
           </EditorToolbarBtn>
-          <EditorToolbarBtn title="Underline" onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive('underline')}>
+          <EditorToolbarBtn title={tr('taskDetail.toolbarUnderline')} onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive('underline')}>
             <UnderlineIcon className="w-3.5 h-3.5" />
           </EditorToolbarBtn>
-          <EditorToolbarBtn title="Strikethrough" onClick={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive('strike')}>
+          <EditorToolbarBtn title={tr('taskDetail.toolbarStrikethrough')} onClick={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive('strike')}>
             <Strikethrough className="w-3.5 h-3.5" />
           </EditorToolbarBtn>
           <EditorToolbarSep />
 
-          <EditorToolbarBtn title="Heading 1" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} active={editor.isActive('heading', { level: 1 })}>
+          <EditorToolbarBtn title={tr('taskDetail.toolbarHeading1')} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} active={editor.isActive('heading', { level: 1 })}>
             <span className="text-[10px] font-bold leading-none">H1</span>
           </EditorToolbarBtn>
-          <EditorToolbarBtn title="Heading 2" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive('heading', { level: 2 })}>
+          <EditorToolbarBtn title={tr('taskDetail.toolbarHeading2')} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive('heading', { level: 2 })}>
             <span className="text-[10px] font-bold leading-none">H2</span>
           </EditorToolbarBtn>
           <EditorToolbarSep />
 
-          <EditorToolbarBtn title="Bullet list" onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive('bulletList')}>
+          <EditorToolbarBtn title={tr('taskDetail.toolbarBulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive('bulletList')}>
             <List className="w-3.5 h-3.5" />
           </EditorToolbarBtn>
-          <EditorToolbarBtn title="Numbered list" onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive('orderedList')}>
+          <EditorToolbarBtn title={tr('taskDetail.toolbarNumberedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive('orderedList')}>
             <ListOrdered className="w-3.5 h-3.5" />
           </EditorToolbarBtn>
           <EditorToolbarSep />
 
-          <EditorToolbarBtn title="Blockquote" onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive('blockquote')}>
+          <EditorToolbarBtn title={tr('taskDetail.toolbarBlockquote')} onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive('blockquote')}>
             <Quote className="w-3.5 h-3.5" />
           </EditorToolbarBtn>
-          <EditorToolbarBtn title="Inline code" onClick={() => editor.chain().focus().toggleCode().run()} active={editor.isActive('code')}>
+          <EditorToolbarBtn title={tr('taskDetail.toolbarInlineCode')} onClick={() => editor.chain().focus().toggleCode().run()} active={editor.isActive('code')}>
             <Code2 className="w-3.5 h-3.5" />
           </EditorToolbarBtn>
-          <EditorToolbarBtn title="Code block" onClick={() => editor.chain().focus().toggleCodeBlock().run()} active={editor.isActive('codeBlock')}>
+          <EditorToolbarBtn title={tr('taskDetail.toolbarCodeBlock')} onClick={() => editor.chain().focus().toggleCodeBlock().run()} active={editor.isActive('codeBlock')}>
             <FileCode className="w-3.5 h-3.5" />
           </EditorToolbarBtn>
           <EditorToolbarSep />
 
-          <EditorToolbarBtn title="Link" onClick={setLink} active={editor.isActive('link')}>
+          <EditorToolbarBtn title={tr('taskDetail.toolbarLink')} onClick={setLink} active={editor.isActive('link')}>
             <Link2 className="w-3.5 h-3.5" />
           </EditorToolbarBtn>
-          <EditorToolbarBtn title="Insert image" onClick={() => fileInputRef.current?.click()}>
+          <EditorToolbarBtn title={tr('taskDetail.toolbarInsertImage')} onClick={() => fileInputRef.current?.click()}>
             <ImageIcon className="w-3.5 h-3.5" />
           </EditorToolbarBtn>
-          <EditorToolbarBtn title="Attach file" onClick={() => attachInputRef.current?.click()}>
+          <EditorToolbarBtn title={tr('taskDetail.toolbarAttachFile')} onClick={() => attachInputRef.current?.click()}>
             <Paperclip className="w-3.5 h-3.5" />
           </EditorToolbarBtn>
           <EditorToolbarSep />
 
-          <EditorToolbarBtn title="Highlight" onClick={() => editor.chain().focus().toggleHighlight().run()} active={editor.isActive('highlight')}>
+          <EditorToolbarBtn title={tr('taskDetail.toolbarHighlight')} onClick={() => editor.chain().focus().toggleHighlight().run()} active={editor.isActive('highlight')}>
             <Highlighter className="w-3.5 h-3.5" />
           </EditorToolbarBtn>
           <EditorToolbarSep />
 
-          <EditorToolbarBtn title="Align left" onClick={() => editor.chain().focus().setTextAlign('left').run()} active={editor.isActive({ textAlign: 'left' })}>
+          <EditorToolbarBtn title={tr('taskDetail.toolbarAlignLeft')} onClick={() => editor.chain().focus().setTextAlign('left').run()} active={editor.isActive({ textAlign: 'left' })}>
             <AlignLeft className="w-3.5 h-3.5" />
           </EditorToolbarBtn>
-          <EditorToolbarBtn title="Align center" onClick={() => editor.chain().focus().setTextAlign('center').run()} active={editor.isActive({ textAlign: 'center' })}>
+          <EditorToolbarBtn title={tr('taskDetail.toolbarAlignCenter')} onClick={() => editor.chain().focus().setTextAlign('center').run()} active={editor.isActive({ textAlign: 'center' })}>
             <AlignCenter className="w-3.5 h-3.5" />
           </EditorToolbarBtn>
-          <EditorToolbarBtn title="Align right" onClick={() => editor.chain().focus().setTextAlign('right').run()} active={editor.isActive({ textAlign: 'right' })}>
+          <EditorToolbarBtn title={tr('taskDetail.toolbarAlignRight')} onClick={() => editor.chain().focus().setTextAlign('right').run()} active={editor.isActive({ textAlign: 'right' })}>
             <AlignRight className="w-3.5 h-3.5" />
           </EditorToolbarBtn>
         </div>
@@ -777,8 +770,8 @@ function DescriptionEditor({ task, onSave }: { task: Task; onSave: (d: string) =
 
       {(dirty || pending.length > 0) && (
         <div className="flex gap-2 mt-1.5">
-          <Button variant="primary" size="sm" onClick={save} loading={uploading}>Save</Button>
-          <Button variant="ghost" size="sm" onClick={cancel} disabled={uploading}>Cancel</Button>
+          <Button variant="primary" size="sm" onClick={save} loading={uploading}>{tr('common.save')}</Button>
+          <Button variant="ghost" size="sm" onClick={cancel} disabled={uploading}>{tr('common.cancel')}</Button>
         </div>
       )}
 
@@ -836,7 +829,7 @@ function AttachmentsSection({ task, projectId }: { task: Task; projectId: string
   return (
     <div>
       <p className="text-sm font-semibold text-fg mb-2">
-        Attachments <span className="text-fg-subtle font-normal">({attachments.length})</span>
+        {tr('taskDetail.attachments')} <span className="text-fg-subtle font-normal">({attachments.length})</span>
       </p>
       <div className="space-y-1.5">
         {attachments.map((a) => {
@@ -895,6 +888,7 @@ function AttachmentsSection({ task, projectId }: { task: Task; projectId: string
 function SubtaskStatusPicker({ sub, projectId, columns, onUpdate }: {
   sub: Task; projectId: string; columns: BoardColumn[]; onUpdate: () => void
 }) {
+  const { t: tr } = useTranslation()
   const [open, setOpen] = useState(false)
   const btnRef = useRef<HTMLButtonElement>(null)
   const [pos, setPos] = useState({ top: 0, left: 0 })
@@ -904,7 +898,7 @@ function SubtaskStatusPicker({ sub, projectId, columns, onUpdate }: {
   // re-derives the status enum from the column name).
   const currentCol = columns.find(c => c.id === sub.columnId) ?? null
   const current = columnVisual(currentCol)
-  const currentLabel = currentCol?.name ?? (SUBTASK_STATUS[sub.status]?.label ?? sub.status)
+  const currentLabel = currentCol?.name ?? tr('status.' + sub.status)
 
   const openDropdown = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -1018,19 +1012,19 @@ function SubtasksSection({ task, projectId, projectKey = 'TASK', onSubtaskClick 
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <p className="text-sm font-semibold text-fg">Subtasks</p>
+        <p className="text-sm font-semibold text-fg">{tr('taskDetail.subtasks')}</p>
         <button
           onClick={() => setAdding(true)}
           className="text-xs text-accent hover:underline flex items-center gap-1"
         >
-          <Plus className="w-3 h-3" /> Add subtask
+          <Plus className="w-3 h-3" /> {tr('taskDetail.addSubtask')}
         </button>
       </div>
 
       {subtasks.length > 0 && (
         <div className="mb-2">
           <div className="flex items-center justify-between text-xs text-fg-muted mb-1">
-            <span>{done} / {subtasks.length} completed</span>
+            <span>{tr('taskDetail.subtasksCompleted', { done, total: subtasks.length })}</span>
             <span>{pct}%</span>
           </div>
           <div className="h-1.5 rounded-full bg-bg-subtle overflow-hidden">
@@ -1045,6 +1039,7 @@ function SubtasksSection({ task, projectId, projectKey = 'TASK', onSubtaskClick 
       <div className="space-y-1">
         {subtasks.map((sub) => {
           const pri = PRIORITY_CONFIG[sub.priority] ?? PRIORITY_CONFIG.medium
+          const priorityLabel = tr('priority.' + sub.priority)
           const taskCode = sub.taskNumber != null ? `${projectKey}-${sub.taskNumber}` : null
           return (
             <div
@@ -1078,8 +1073,8 @@ function SubtasksSection({ task, projectId, projectKey = 'TASK', onSubtaskClick 
 
               {/* Priority — 76px fixed */}
               <div className="w-[76px] shrink-0 flex items-center gap-1">
-                <img src={pri.svg} alt={pri.label} width={14} height={14} className="shrink-0" />
-                <span className="text-[12px] truncate" style={{ color: pri.hexColor }}>{pri.label}</span>
+                <img src={pri.svg} alt={priorityLabel} width={14} height={14} className="shrink-0" />
+                <span className="text-[12px] truncate" style={{ color: pri.hexColor }}>{priorityLabel}</span>
               </div>
 
               {/* Assignee — 108px fixed */}
@@ -1092,7 +1087,7 @@ function SubtasksSection({ task, projectId, projectKey = 'TASK', onSubtaskClick 
                 ) : (
                   <>
                     <img src={DEFAULT_AVATAR} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
-                    <span className="text-[12px] text-fg-muted">Unassigned</span>
+                    <span className="text-[12px] text-fg-muted">{tr('common.unassigned')}</span>
                   </>
                 )}
               </div>
@@ -1127,7 +1122,7 @@ function SubtasksSection({ task, projectId, projectKey = 'TASK', onSubtaskClick 
             placeholder={tr('taskDetail.subtaskPlaceholder')}
             className="flex-1 h-8 rounded-lg border border-border bg-bg-elevated px-2.5 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent placeholder:text-fg-subtle"
           />
-          <Button variant="primary" size="sm" onClick={() => newTitle.trim() && createSubtask()} loading={isPending}>Add</Button>
+          <Button variant="primary" size="sm" onClick={() => newTitle.trim() && createSubtask()} loading={isPending}>{tr('common.add')}</Button>
           <Button variant="ghost" size="sm" onClick={() => { setAdding(false); setNewTitle('') }}>✕</Button>
         </div>
       )}
@@ -1181,20 +1176,21 @@ function LinkedItemsSection({ task, projectId }: { task: Task; projectId: string
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <p className="text-sm font-semibold text-fg">Linked work items</p>
+        <p className="text-sm font-semibold text-fg">{tr('taskDetail.linkedItems')}</p>
         <button onClick={() => setAdding(true)} className="text-xs text-accent hover:underline flex items-center gap-1">
-          <Plus className="w-3 h-3" /> Add linked work item
+          <Plus className="w-3 h-3" /> {tr('taskDetail.addLinkedWorkItem')}
         </button>
       </div>
 
       {links.map((link) => {
         const other = link.sourceTaskId === task.id ? link.targetTask : link.sourceTask
-        const sconf = STATUS_CONFIG[other?.status ?? 'todo']
+        const status = other?.status ?? 'todo'
+        const sconf = STATUS_CONFIG[status]
         return (
           <div key={link.id} className="flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-bg-subtle group">
-            <span className="text-xs text-fg-subtle italic w-24 shrink-0">{LINK_TYPE_LABELS[link.linkType]}</span>
+            <span className="text-xs text-fg-subtle italic w-24 shrink-0">{tr('taskDetail.' + LINK_TYPE_LABEL_KEYS[link.linkType])}</span>
             <span className={cn('text-xs px-1.5 py-0.5 rounded font-medium', sconf.color, sconf.bg)}>
-              {sconf.label}
+              {tr('status.' + status)}
             </span>
             <span className="text-sm text-fg flex-1 truncate">{other?.title ?? '—'}</span>
             <button
@@ -1214,7 +1210,7 @@ function LinkedItemsSection({ task, projectId }: { task: Task; projectId: string
             onChange={(e) => setLinkType(e.target.value as typeof linkType)}
             className="w-full h-8 rounded-lg border border-border bg-bg-subtle px-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
           >
-            {Object.entries(LINK_TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            {Object.entries(LINK_TYPE_LABEL_KEYS).map(([v, k]) => <option key={v} value={v}>{tr('taskDetail.' + k)}</option>)}
           </select>
           <input
             autoFocus
@@ -1241,7 +1237,7 @@ function LinkedItemsSection({ task, projectId }: { task: Task; projectId: string
             </div>
           )}
           <div className="flex gap-2">
-            <Button variant="primary" size="sm" onClick={() => selectedId && addLink()} disabled={!selectedId} loading={isPending}>Link</Button>
+            <Button variant="primary" size="sm" onClick={() => selectedId && addLink()} disabled={!selectedId} loading={isPending}>{tr('taskDetail.link')}</Button>
             <Button variant="ghost" size="sm" onClick={() => { setAdding(false); setSearch(''); setSelectedId('') }}>{tr('common.cancel')}</Button>
           </div>
         </div>
@@ -1400,7 +1396,7 @@ function CommentsTab({ projectId, taskId }: { projectId: string; taskId: string 
 
   if (isLoading) return <TimelineSkeleton />
 
-  const quickReplies = ["Who is working on this?", "Can I get more info?", "Status update?"]
+  const quickReplies = [tr('taskDetail.quick1'), tr('taskDetail.quick2'), tr('taskDetail.quick3')]
 
   return (
     <div className="space-y-4">
@@ -1465,7 +1461,7 @@ function CommentsTab({ projectId, taskId }: { projectId: string; taskId: string 
                     submit()
                   }
                 }}
-                placeholder="Add a comment... (@ to mention, Shift+Enter to send)"
+                placeholder={tr('taskDetail.commentPlaceholder')}
                 rows={4}
                 className="w-full bg-bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-fg resize-none focus:outline-none focus:ring-2 focus:ring-accent placeholder:text-fg-subtle"
               />
@@ -1490,9 +1486,9 @@ function CommentsTab({ projectId, taskId }: { projectId: string; taskId: string 
               )}
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-fg-subtle">Press M to comment</span>
+              <span className="text-xs text-fg-subtle">{tr('taskDetail.pressMToComment')}</span>
               <Button variant="primary" size="sm" disabled={!content.trim()} loading={isPending} onClick={submit}>
-                Save
+                {tr('common.save')}
               </Button>
             </div>
           </div>
@@ -1533,6 +1529,7 @@ function CommentBubble({
   onUpdate?: (id: string, content: string) => void; onDelete?: (id: string) => void
   mini?: boolean; memberNames?: string[]
 }) {
+  const { t: tr } = useTranslation()
   const isOwn = comment.authorId === currentUserId
   const isEditing = editing?.id === comment.id
 
@@ -1543,7 +1540,7 @@ function CommentBubble({
         <div className="flex items-center gap-2 mb-0.5">
           <span className="text-sm font-medium text-fg">{comment.author.fullName}</span>
           <span className="text-xs text-fg-subtle">{formatRelative(comment.createdAt)}</span>
-          {comment.editedAt && <span className="text-xs text-fg-subtle italic">(edited)</span>}
+          {comment.editedAt && <span className="text-xs text-fg-subtle italic">{tr('board.edited')}</span>}
         </div>
 
         {isEditing && onEdit && onUpdate ? (
@@ -1555,8 +1552,8 @@ function CommentBubble({
               className="w-full bg-bg-elevated border border-accent rounded-lg px-3 py-2 text-sm text-fg resize-none focus:outline-none"
             />
             <div className="flex gap-2">
-              <Button variant="primary" size="sm" onClick={() => onUpdate(comment.id, editing!.content)}>Save</Button>
-              <Button variant="ghost" size="sm" onClick={() => onEdit(null)}>Cancel</Button>
+              <Button variant="primary" size="sm" onClick={() => onUpdate(comment.id, editing!.content)}>{tr('common.save')}</Button>
+              <Button variant="ghost" size="sm" onClick={() => onEdit(null)}>{tr('common.cancel')}</Button>
             </div>
           </div>
         ) : (
@@ -1569,7 +1566,7 @@ function CommentBubble({
           <div className="flex items-center gap-3 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
             {onReply && (
               <button onClick={() => onReply(comment)} className="text-xs text-fg-subtle hover:text-accent transition-colors">
-                Reply
+                {tr('board.reply')}
               </button>
             )}
             {isOwn && !isEditing && onEdit && onDelete && (
@@ -1633,15 +1630,19 @@ function HistoryTab({ projectId, taskId }: { projectId: string; taskId: string }
 // Readable labels for the snapshot keys the backend records (see TaskController::snapshot).
 // `status` (enum) is omitted on purpose — the board column is the source of truth, so
 // we surface `columnId` as "Status" with the column's own name.
+// Maps each snapshot key the backend records to its i18n key under `taskDetail`.
+// `status` (enum) is omitted on purpose — the board column is the source of truth,
+// so we surface `columnId` as "Status" with the column's own name.
 const HISTORY_FIELDS: Record<string, string> = {
-  title: 'Title',
-  columnId: 'Status',
-  assigneeId: 'Assignee',
-  priority: 'Priority',
-  dueDate: 'Due date',
+  title: 'fTitle',
+  columnId: 'fStatus',
+  assigneeId: 'fAssignee',
+  priority: 'fPriority',
+  dueDate: 'fDueDate',
 }
 
 function HistoryItem({ log, projectId }: { log: ActivityLog; projectId: string }) {
+  const { t: tr } = useTranslation()
   const timezone = useSiteTimezone()
   const { data: members = [] } = useQuery({
     queryKey: ['members', projectId],
@@ -1653,21 +1654,21 @@ function HistoryItem({ log, projectId }: { log: ActivityLog; projectId: string }
   })
 
   const actionLabel: Record<string, string> = {
-    created: 'created this task',
-    updated: 'updated this task',
-    status_changed: 'changed status',
-    moved: 'moved task',
-    assigned: 'changed assignee',
-    commented: 'commented',
-    deleted: 'deleted',
+    created: tr('taskDetail.histCreated'),
+    updated: tr('taskDetail.histUpdated'),
+    status_changed: tr('taskDetail.histStatusChanged'),
+    moved: tr('taskDetail.histMoved'),
+    assigned: tr('taskDetail.histAssigned'),
+    commented: tr('taskDetail.histCommented'),
+    deleted: tr('taskDetail.histDeleted'),
   }
 
   // Resolve recorded IDs to human-readable text.
   const formatValue = (key: string, value: unknown): string => {
     if (value === null || value === undefined || value === '') {
-      return key === 'assigneeId' ? 'Unassigned' : 'None'
+      return key === 'assigneeId' ? tr('common.unassigned') : tr('common.none')
     }
-    if (key === 'assigneeId') return members.find(m => m.userId === value)?.user.fullName ?? 'Unknown user'
+    if (key === 'assigneeId') return members.find(m => m.userId === value)?.user.fullName ?? tr('taskDetail.unknownUser')
     if (key === 'columnId') return columns.find(c => c.id === value)?.name ?? String(value)
     return String(value)
   }
@@ -1678,7 +1679,7 @@ function HistoryItem({ log, projectId }: { log: ActivityLog; projectId: string }
   const changes = old
     ? Object.keys(HISTORY_FIELDS)
         .filter(k => (old[k] ?? null) !== (log.newValues?.[k] ?? null))
-        .map(k => ({ label: HISTORY_FIELDS[k], from: formatValue(k, old[k]), to: formatValue(k, log.newValues?.[k]) }))
+        .map(k => ({ label: tr('taskDetail.' + HISTORY_FIELDS[k]), from: formatValue(k, old[k]), to: formatValue(k, log.newValues?.[k]) }))
     : []
 
   // Log-time entries are stored as action 'updated' (the action column is a fixed
@@ -1691,22 +1692,23 @@ function HistoryItem({ log, projectId }: { log: ActivityLog; projectId: string }
   if (isLogTime) {
     const isQaLog = 'isQa' in nv ? nv.isQa === true : 'qaLoggedHours' in nv
     const amount = 'hours' in nv ? Number(nv.hours) : Number(nv.qaLoggedHours ?? nv.loggedHours)
-    const suffix = 'hours' in nv ? '' : ' total'
-    actionText = `logged ${formatTimeHours(amount || 0)}${suffix}${isQaLog ? ' (QA)' : ''}`
+    const isTotal = !('hours' in nv)
+    const key = isTotal ? (isQaLog ? 'histLoggedTotalQa' : 'histLoggedTotal') : (isQaLog ? 'histLoggedQa' : 'histLogged')
+    actionText = tr('taskDetail.' + key, { time: formatTimeHours(amount || 0) })
   }
   const note = typeof nv.note === 'string' && nv.note.trim() ? nv.note.trim() : null
 
   return (
     <div className="flex items-center gap-2.5 text-xs">
       <Avatar
-        name={log.user?.fullName ?? 'System'}
+        name={log.user?.fullName ?? tr('common.system')}
         avatarUrl={log.user?.avatarUrl ?? null}
         size="sm"
         className="shrink-0 mt-0.5"
       />
       <div className="flex-1 min-w-0">
         <div className="text-fg-muted">
-          <span className="font-medium text-fg">{log.user?.fullName ?? 'System'}</span>
+          <span className="font-medium text-fg">{log.user?.fullName ?? tr('common.system')}</span>
           {' '}{actionText}
           <span className="ml-2 text-fg-subtle" title={formatRelative(log.createdAt, timezone)}>
             {formatZonedDateTime(log.createdAt, timezone)}
@@ -1733,13 +1735,14 @@ function HistoryItem({ log, projectId }: { log: ActivityLog; projectId: string }
 // ─── Tab: Work Log ────────────────────────────────────────────────────────────
 
 function WorkLogTab({ task, onUpdate }: { task: Task; onUpdate: (dto: UpdateTaskDto) => void }) {
+  const { t: tr } = useTranslation()
   const [timeInput, setTimeInput] = useState('')
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [inputError, setInputError] = useState('')
 
   const logTime = () => {
     const h = parseTimeInput(timeInput)
-    if (!h) { setInputError('Format: 2w 4d 6h 45m'); return }
+    if (!h) { setInputError(tr('taskDetail.timeFormatError')); return }
     setInputError('')
     const current = Number(task.loggedHours) || 0
     onUpdate({ loggedHours: current + h })
@@ -1753,36 +1756,36 @@ function WorkLogTab({ task, onUpdate }: { task: Task; onUpdate: (dto: UpdateTask
   return (
     <div className="space-y-4">
       <div className="p-4 rounded-xl border border-border bg-bg-elevated space-y-3">
-        <p className="text-sm font-semibold text-fg">Log time</p>
+        <p className="text-sm font-semibold text-fg">{tr('taskDetail.logTime')}</p>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-xs text-fg-subtle mb-1 block">Time spent</label>
+            <label className="text-xs text-fg-subtle mb-1 block">{tr('taskDetail.timeSpent')}</label>
             <input
               type="text" value={timeInput}
               onChange={(e) => { setTimeInput(e.target.value); setInputError('') }}
               onKeyDown={(e) => e.key === 'Enter' && logTime()}
-              placeholder="2h 30m"
+              placeholder={tr('taskDetail.timePlaceholder')}
               className="w-full h-8 rounded-lg border border-border bg-bg-subtle px-2.5 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent placeholder:text-fg-muted"
             />
             {inputError && <p className="text-xs text-danger mt-0.5">{inputError}</p>}
           </div>
           <div>
-            <label className="text-xs text-fg-subtle mb-1 block">Date</label>
+            <label className="text-xs text-fg-subtle mb-1 block">{tr('taskDetail.date')}</label>
             <input
               type="date" value={date} onChange={(e) => setDate(e.target.value)}
               className="w-full h-8 rounded-lg border border-border bg-bg-subtle px-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
         </div>
-        <p className="text-xs text-fg-subtle">Format: 2w 4d 6h 45m (1w=5d, 1d=8h)</p>
-        <Button variant="primary" size="sm" onClick={logTime} disabled={!timeInput.trim()}>Log time</Button>
+        <p className="text-xs text-fg-subtle">{tr('taskDetail.timeFormatHint')}</p>
+        <Button variant="primary" size="sm" onClick={logTime} disabled={!timeInput.trim()}>{tr('taskDetail.logTime')}</Button>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'Estimated', value: formatTimeHours(estimated) },
-          { label: 'Logged',    value: formatTimeHours(logged) },
-          { label: 'Remaining', value: formatTimeHours(remaining) },
+          { label: tr('taskDetail.estimated'), value: formatTimeHours(estimated) },
+          { label: tr('taskDetail.logged'),    value: formatTimeHours(logged) },
+          { label: tr('taskDetail.remaining'), value: formatTimeHours(remaining) },
         ].map(({ label, value }) => (
           <div key={label} className="p-3 rounded-xl border border-border bg-bg-elevated text-center">
             <p className="text-sm font-bold text-fg">{value}</p>
@@ -1830,28 +1833,28 @@ function RightColumn({ task, projectId, projectKey = 'TASK', onUpdate }: {
 
       {/* Details */}
       <CollapsibleSection
-        title="Details"
+        title={tr('taskDetail.details')}
         open={detailsOpen}
         onToggle={() => setDetailsOpen(v => !v)}
       >
         <div className="space-y-0">
           {/* Assignee */}
-          <FieldRow label="Assignee" icon={<User className="w-3.5 h-3.5" />}>
+          <FieldRow label={tr('taskDetail.fAssignee')} icon={<User className="w-3.5 h-3.5" />}>
             <AssigneeField task={task} members={members} onUpdate={onUpdate} />
           </FieldRow>
 
           {/* QA Assignee */}
-          <FieldRow label="QA Assignee" icon={<User className="w-3.5 h-3.5" />}>
+          <FieldRow label={tr('taskDetail.qaAssignee')} icon={<User className="w-3.5 h-3.5" />}>
             <AssigneeField task={task} members={members} onUpdate={onUpdate} variant="qa" />
           </FieldRow>
 
           {/* Priority */}
-          <FieldRow label="Priority" icon={<Flag className="w-3.5 h-3.5" />}>
+          <FieldRow label={tr('taskDetail.fPriority')} icon={<Flag className="w-3.5 h-3.5" />}>
             <PriorityField task={task} onUpdate={onUpdate} />
           </FieldRow>
 
           {/* Due date */}
-          <FieldRow label="Due date" icon={<Calendar className="w-3.5 h-3.5" />} align="center">
+          <FieldRow label={tr('taskDetail.fDueDate')} icon={<Calendar className="w-3.5 h-3.5" />} align="center">
             <DueDateField task={task} onUpdate={onUpdate} />
           </FieldRow>
 
@@ -1861,12 +1864,12 @@ function RightColumn({ task, projectId, projectKey = 'TASK', onUpdate }: {
           </FieldRow>
 
           {/* Requester (label-like; who requested the task) */}
-          <FieldRow label="Requester" icon={<User className="w-3.5 h-3.5" />}>
+          <FieldRow label={tr('taskDetail.requester')} icon={<User className="w-3.5 h-3.5" />}>
             <LabelsField task={task} labels={requesters} projectId={projectId} onUpdate={onUpdate} variant="requester" />
           </FieldRow>
 
           {/* Reporter */}
-          <FieldRow label="Reporter" icon={<User className="w-3.5 h-3.5" />}>
+          <FieldRow label={tr('taskDetail.reporter')} icon={<User className="w-3.5 h-3.5" />}>
             {task.reporter ? (
               <div className="flex items-center gap-1.5">
                 <Avatar name={task.reporter.fullName} avatarUrl={task.reporter.avatarUrl} size="xs" />
@@ -1876,17 +1879,17 @@ function RightColumn({ task, projectId, projectKey = 'TASK', onUpdate }: {
           </FieldRow>
 
           {/* Time tracking */}
-          <FieldRow label="Time tracking" icon={<CheckSquare className="w-3.5 h-3.5" />}>
+          <FieldRow label={tr('taskDetail.timeTracking')} icon={<CheckSquare className="w-3.5 h-3.5" />}>
             <TimeTrackingField task={task} projectId={projectId} />
           </FieldRow>
 
           {/* QA time tracking */}
-          <FieldRow label="QA time tracking" icon={<CheckSquare className="w-3.5 h-3.5" />}>
+          <FieldRow label={tr('taskDetail.qaTimeTracking')} icon={<CheckSquare className="w-3.5 h-3.5" />}>
             <TimeTrackingField task={task} projectId={projectId} variant="qa" />
           </FieldRow>
 
           {/* Parent task */}
-          <FieldRow label="Parent" icon={<AlignLeft className="w-3.5 h-3.5" />}>
+          <FieldRow label={tr('taskDetail.parent')} icon={<AlignLeft className="w-3.5 h-3.5" />}>
             {task.parentTask?.taskNumber != null ? (
               <span className="flex items-center gap-1 text-sm text-fg-muted">
                 <TaskIcon size={12} />
@@ -1895,17 +1898,17 @@ function RightColumn({ task, projectId, projectKey = 'TASK', onUpdate }: {
             ) : task.parentTaskId ? (
               <span className="text-sm text-fg-muted">{projectKey}-?</span>
             ) : (
-              <span className="text-sm text-fg-muted">None</span>
+              <span className="text-sm text-fg-muted">{tr('common.none')}</span>
             )}
           </FieldRow>
 
           {/* Team (stub) */}
-          <FieldRow label="Team" icon={<User className="w-3.5 h-3.5" />}>
-            <span className="text-sm text-fg-muted">None</span>
+          <FieldRow label={tr('taskDetail.team')} icon={<User className="w-3.5 h-3.5" />}>
+            <span className="text-sm text-fg-muted">{tr('common.none')}</span>
           </FieldRow>
 
           {/* Start date */}
-          <FieldRow label="Start date" icon={<Calendar className="w-3.5 h-3.5" />}>
+          <FieldRow label={tr('taskDetail.startDate')} icon={<Calendar className="w-3.5 h-3.5" />}>
             <StartDateField task={task} onUpdate={onUpdate} />
           </FieldRow>
         </div>
@@ -1913,7 +1916,7 @@ function RightColumn({ task, projectId, projectKey = 'TASK', onUpdate }: {
 
       {/* Development */}
       <CollapsibleSection
-        title="Development"
+        title={tr('taskDetail.development')}
         open={devOpen}
         onToggle={() => setDevOpen(v => !v)}
       >
@@ -1923,12 +1926,12 @@ function RightColumn({ task, projectId, projectKey = 'TASK', onUpdate }: {
       {/* Footer */}
       <div className="mt-auto px-5 py-4 border-t border-border">
         <div className="text-xs text-fg-subtle space-y-1 mb-3">
-          <p>Created {formatRelative(task.createdAt)}</p>
-          <p>Updated {formatRelative(task.updatedAt)}</p>
+          <p>{tr('taskDetail.createdAt', { time: formatRelative(task.createdAt) })}</p>
+          <p>{tr('taskDetail.updatedAt', { time: formatRelative(task.updatedAt) })}</p>
         </div>
         <button className="flex items-center gap-1.5 text-xs text-fg-muted hover:text-fg transition-colors">
           <Zap className="w-3.5 h-3.5" />
-          Configure
+          {tr('taskDetail.configure')}
         </button>
       </div>
     </div>
@@ -1957,12 +1960,13 @@ function columnVisual(col?: BoardColumn | null): { bg: string; fg: string } {
 // Status = the task's board column. Columns are the source of truth, so the
 // dropdown lists the project's actual columns; picking one moves the task there.
 function StatusDropdown({ task, columns, onUpdate }: { task: Task; columns: BoardColumn[]; onUpdate: (dto: UpdateTaskDto) => void }) {
+  const { t: tr } = useTranslation()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   const currentCol = columns.find((c) => c.id === task.columnId) ?? null
   const current = columnVisual(currentCol)
-  const fallbackLabel = STATUS_CONFIG[task.status]?.label ?? task.status
+  const fallbackLabel = tr('status.' + task.status)
   const currentLabel = currentCol?.name ?? fallbackLabel
 
   useEffect(() => {
@@ -2016,6 +2020,7 @@ function AssigneeField({ task, members, onUpdate, variant = 'dev' }: {
   onUpdate: (dto: UpdateTaskDto) => void
   variant?: 'dev' | 'qa'
 }) {
+  const { t: tr } = useTranslation()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const { user: me } = useAuthStore()
@@ -2042,7 +2047,7 @@ function AssigneeField({ task, members, onUpdate, variant = 'dev' }: {
       <div className="flex items-center gap-1.5">
         {assigneeUser
           ? <><Avatar name={assigneeUser.fullName} avatarUrl={assigneeUser.avatarUrl} size="xs" /><span className="text-sm text-fg">{assigneeUser.fullName}</span></>
-          : <span className="text-sm text-fg-muted">Unassigned</span>
+          : <span className="text-sm text-fg-muted">{tr('common.unassigned')}</span>
         }
       </div>
     )
@@ -2053,7 +2058,7 @@ function AssigneeField({ task, members, onUpdate, variant = 'dev' }: {
       <button onClick={() => setOpen(v => !v)} className="flex items-center gap-1.5 hover:text-fg transition-colors">
         {assigneeUser
           ? <><Avatar name={assigneeUser.fullName} avatarUrl={assigneeUser.avatarUrl} size="xs" /><span className="text-sm text-fg">{assigneeUser.fullName}</span></>
-          : <span className="text-sm text-fg-muted">Unassigned</span>
+          : <span className="text-sm text-fg-muted">{tr('common.unassigned')}</span>
         }
       </button>
       {!currentId && (
@@ -2061,7 +2066,7 @@ function AssigneeField({ task, members, onUpdate, variant = 'dev' }: {
           onClick={() => { setAssignee(me?.id); setOpen(false) }}
           className="ml-2 text-xs text-accent hover:underline"
         >
-          Assign to me
+          {tr('taskDetail.assignToMe')}
         </button>
       )}
       {open && (
@@ -2070,7 +2075,7 @@ function AssigneeField({ task, members, onUpdate, variant = 'dev' }: {
             onClick={() => { setAssignee(null); setOpen(false) }}
             className="w-full text-left px-3 py-2 text-sm text-fg-muted hover:bg-bg-subtle"
           >
-            Unassigned
+            {tr('common.unassigned')}
           </button>
           {members.map(m => (
             <button
@@ -2158,7 +2163,7 @@ function LabelsField({ task, labels, projectId, onUpdate, variant = 'label' }: {
       {/* Chips */}
       <div className="flex flex-wrap gap-1">
         {selected.length === 0 && !open && (
-          <span className="text-sm text-fg-muted">None</span>
+          <span className="text-sm text-fg-muted">{tr('common.none')}</span>
         )}
         {selected.map(l => (
           <span
@@ -2258,9 +2263,11 @@ function LabelsField({ task, labels, projectId, onUpdate, variant = 'label' }: {
 // ─── Priority Field ───────────────────────────────────────────────────────────
 
 function PriorityField({ task, onUpdate }: { task: Task; onUpdate: (dto: UpdateTaskDto) => void }) {
+  const { t: tr } = useTranslation()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const pc = PRIORITY_CONFIG[task.priority]
+  const currentLabel = tr('priority.' + task.priority)
 
   useEffect(() => {
     if (!open) return
@@ -2273,24 +2280,27 @@ function PriorityField({ task, onUpdate }: { task: Task; onUpdate: (dto: UpdateT
     <div ref={ref} className="relative">
       <button onClick={() => setOpen(v => !v)} className="flex items-center gap-1.5 hover:opacity-80 transition-opacity">
         {pc
-          ? <><img src={pc.svg} alt={pc.label} width={16} height={16} className="shrink-0" />
-              <span className="text-sm" style={{ color: pc.hexColor }}>{pc.label}</span></>
-          : <span className="text-sm text-fg-muted">None</span>
+          ? <><img src={pc.svg} alt={currentLabel} width={16} height={16} className="shrink-0" />
+              <span className="text-sm" style={{ color: pc.hexColor }}>{currentLabel}</span></>
+          : <span className="text-sm text-fg-muted">{tr('common.none')}</span>
         }
       </button>
       {open && (
         <div className="absolute top-full left-0 mt-1 z-50 w-40 rounded-lg border border-border bg-bg-surface shadow-app-md overflow-hidden">
-          {Object.entries(PRIORITY_CONFIG).map(([v, c]) => (
-            <button
-              key={v}
-              onClick={() => { onUpdate({ priority: v }); setOpen(false) }}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-bg-subtle"
-            >
-              <img src={c.svg} alt={c.label} width={16} height={16} className="shrink-0" />
-              <span style={{ color: c.hexColor }}>{c.label}</span>
-              {v === task.priority && <Check className="w-3.5 h-3.5 text-accent ml-auto" />}
-            </button>
-          ))}
+          {Object.entries(PRIORITY_CONFIG).map(([v, c]) => {
+            const label = tr('priority.' + v)
+            return (
+              <button
+                key={v}
+                onClick={() => { onUpdate({ priority: v }); setOpen(false) }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-bg-subtle"
+              >
+                <img src={c.svg} alt={label} width={16} height={16} className="shrink-0" />
+                <span style={{ color: c.hexColor }}>{label}</span>
+                {v === task.priority && <Check className="w-3.5 h-3.5 text-accent ml-auto" />}
+              </button>
+            )
+          })}
         </div>
       )}
     </div>
@@ -2300,6 +2310,7 @@ function PriorityField({ task, onUpdate }: { task: Task; onUpdate: (dto: UpdateT
 // ─── Due Date Field ───────────────────────────────────────────────────────────
 
 function DueDateField({ task, onUpdate }: { task: Task; onUpdate: (dto: UpdateTaskDto) => void }) {
+  const { t: tr } = useTranslation()
   const timezone = useSiteTimezone()
   const [editing, setEditing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -2336,7 +2347,11 @@ function DueDateField({ task, onUpdate }: { task: Task; onUpdate: (dto: UpdateTa
           autoFocus
         />
         <div className="absolute top-full left-0 mt-1 z-50 flex gap-1 bg-bg-surface border border-border rounded-lg p-1.5 shadow-app-md">
-          {[['Today', 0], ['Tomorrow', 1], ['Next week', 7]].map(([label, days]) => (
+          {[
+            [tr('filter.today'), 0],
+            [tr('taskDetail.tomorrow'), 1],
+            [tr('taskDetail.nextWeek'), 7],
+          ].map(([label, days]) => (
             <button
               key={label as string}
               onClick={() => handleQuick(days as number)}
@@ -2349,7 +2364,7 @@ function DueDateField({ task, onUpdate }: { task: Task; onUpdate: (dto: UpdateTa
             onClick={() => { onUpdate({ dueDate: null }); setEditing(false) }}
             className="px-2 py-1 text-xs rounded-md text-danger hover:bg-danger/10 transition-colors"
           >
-            Clear
+            {tr('filter.clear')}
           </button>
         </div>
       </div>
@@ -2370,7 +2385,7 @@ function DueDateField({ task, onUpdate }: { task: Task; onUpdate: (dto: UpdateTa
         </svg>
       )}
       <Calendar className="w-3.5 h-3.5" />
-      {task.dueDate ? fmt(task.dueDate) : <span className="text-fg-muted">None</span>}
+      {task.dueDate ? fmt(task.dueDate) : <span className="text-fg-muted">{tr('common.none')}</span>}
     </button>
   )
 }
@@ -2399,8 +2414,8 @@ function TimeTrackingField({ task, projectId, variant = 'dev' }: { task: Task; p
     : hasLogged ? 100 : 0
   const fillColor = overBudget ? '#FF5630' : '#0052CC'
   const tooltipText = estimated > 0
-    ? `${formatTimeHours(logged)} of ${formatTimeHours(estimated)} logged (${Math.round(pct)}%)`
-    : `${formatTimeHours(logged)} logged`
+    ? tr('taskDetail.loggedTooltipEstimated', { logged: formatTimeHours(logged), est: formatTimeHours(estimated), pct: Math.round(pct) })
+    : tr('taskDetail.loggedTooltip', { logged: formatTimeHours(logged) })
 
   const { mutate: doLogTime, isPending } = useMutation({
     // The ONLY request whose failure means "could not log time" is this one.
@@ -2418,7 +2433,7 @@ function TimeTrackingField({ task, projectId, variant = 'dev' }: { task: Task; p
       // previously surfaced as a false "could not log time" with a stale UI.
       qc.setQueryData(['task', projectId, task.id], loggedTask)
       qc.invalidateQueries({ queryKey: ['tasks', projectId] })
-      toast.success('Time logged successfully')
+      toast.success(tr('taskDetail.logTimeSuccess'))
       setTimeInput(''); setDescription(''); setManualRemaining('')
       setShowModal(false)
 
@@ -2442,7 +2457,7 @@ function TimeTrackingField({ task, projectId, variant = 'dev' }: { task: Task; p
 
   const logTime = () => {
     const h = parseTimeInput(timeInput)
-    if (!h) { setInputError('Format: 2w 4d 6h 45m'); return }
+    if (!h) { setInputError(tr('taskDetail.timeFormatError')); return }
     setInputError('')
     doLogTime(h)
   }
@@ -2462,7 +2477,7 @@ function TimeTrackingField({ task, projectId, variant = 'dev' }: { task: Task; p
           className="text-sm hover:text-accent transition-colors"
           style={{ color: '#42526E' }}
         >
-          No time logged
+          {tr('taskDetail.noTimeLogged')}
         </button>
       ) : (
         <button onClick={() => setShowModal(true)} title={tooltipText} className="w-full text-left group space-y-1">
@@ -2479,8 +2494,8 @@ function TimeTrackingField({ task, projectId, variant = 'dev' }: { task: Task; p
             style={{ color: overBudget ? '#FF5630' : '#42526E', fontSize: 13 }}
           >
             {estimated > 0
-              ? `${formatTimeHours(logged)} logged / ${formatTimeHours(estimated)} estimated`
-              : `${formatTimeHours(logged)} logged`}
+              ? tr('taskDetail.loggedEstimated', { logged: formatTimeHours(logged), est: formatTimeHours(estimated) })
+              : tr('taskDetail.loggedOnly', { logged: formatTimeHours(logged) })}
           </p>
         </button>
       )}
@@ -2492,7 +2507,7 @@ function TimeTrackingField({ task, projectId, variant = 'dev' }: { task: Task; p
           <div className="relative bg-bg-surface border border-border rounded-xl shadow-app-lg w-[500px] overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
-              <h3 className="text-sm font-semibold text-fg">Log time</h3>
+              <h3 className="text-sm font-semibold text-fg">{tr('taskDetail.logTime')}</h3>
               <button onClick={closeModal} className="text-fg-muted hover:text-fg transition-colors">
                 <X className="w-4 h-4" />
               </button>
@@ -2501,24 +2516,24 @@ function TimeTrackingField({ task, projectId, variant = 'dev' }: { task: Task; p
             <div className="px-5 py-4 space-y-4">
               {/* Time spent */}
               <div>
-                <label className="text-xs font-medium text-fg-muted mb-1.5 block">Time spent</label>
+                <label className="text-xs font-medium text-fg-muted mb-1.5 block">{tr('taskDetail.timeSpent')}</label>
                 <input
                   autoFocus
                   type="text" value={timeInput}
                   onChange={(e) => { setTimeInput(e.target.value); setInputError('') }}
                   onKeyDown={(e) => e.key === 'Enter' && logTime()}
-                  placeholder="2h 30m"
+                  placeholder={tr('taskDetail.timePlaceholder')}
                   className="w-full h-8 rounded-lg border border-border bg-bg-subtle px-2.5 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent placeholder:text-fg-muted"
                 />
                 {inputError
                   ? <p className="text-xs text-danger mt-1">{inputError}</p>
-                  : <p className="text-xs text-fg-subtle mt-1">Accepts: 2h, 30m, 1h 30m, 2w 4d 6h 45m</p>
+                  : <p className="text-xs text-fg-subtle mt-1">{tr('taskDetail.timeAccepts')}</p>
                 }
               </div>
 
               {/* Date logged */}
               <div>
-                <label className="text-xs font-medium text-fg-muted mb-1.5 block">Date logged</label>
+                <label className="text-xs font-medium text-fg-muted mb-1.5 block">{tr('taskDetail.dateLogged')}</label>
                 <input
                   type="date" value={date}
                   onChange={(e) => setDate(e.target.value)}
@@ -2528,12 +2543,12 @@ function TimeTrackingField({ task, projectId, variant = 'dev' }: { task: Task; p
 
               {/* Remaining estimate */}
               <div>
-                <label className="text-xs font-medium text-fg-muted mb-1.5 block">Remaining estimate</label>
+                <label className="text-xs font-medium text-fg-muted mb-1.5 block">{tr('taskDetail.remainingEstimate')}</label>
                 <div className="space-y-1.5">
                   {([
-                    { value: 'auto', label: 'Auto: subtract logged time' },
-                    { value: 'manual', label: 'Set manually' },
-                    { value: 'keep', label: "Don't change" },
+                    { value: 'auto', label: tr('taskDetail.remainingAuto') },
+                    { value: 'manual', label: tr('taskDetail.remainingManual') },
+                    { value: 'keep', label: tr('taskDetail.remainingKeep') },
                   ] as const).map(opt => (
                     <label key={opt.value} className="flex items-center gap-2 cursor-pointer select-none">
                       <input
@@ -2550,7 +2565,7 @@ function TimeTrackingField({ task, projectId, variant = 'dev' }: { task: Task; p
                   <input
                     type="text" value={manualRemaining}
                     onChange={(e) => setManualRemaining(e.target.value)}
-                    placeholder="e.g. 2h"
+                    placeholder={tr('taskDetail.timeExample')}
                     autoFocus
                     className="mt-2 w-full h-8 rounded-lg border border-border bg-bg-subtle px-2.5 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent placeholder:text-fg-muted"
                   />
@@ -2559,11 +2574,11 @@ function TimeTrackingField({ task, projectId, variant = 'dev' }: { task: Task; p
 
               {/* Work description */}
               <div>
-                <label className="text-xs font-medium text-fg-muted mb-1.5 block">Work description</label>
+                <label className="text-xs font-medium text-fg-muted mb-1.5 block">{tr('taskDetail.workDescription')}</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="What did you work on?"
+                  placeholder={tr('taskDetail.workDescPlaceholder')}
                   rows={2}
                   className="w-full rounded-lg border border-border bg-bg-subtle px-2.5 py-2 text-sm text-fg resize-none focus:outline-none focus:ring-2 focus:ring-accent placeholder:text-fg-muted"
                 />
@@ -2572,9 +2587,9 @@ function TimeTrackingField({ task, projectId, variant = 'dev' }: { task: Task; p
 
             {/* Footer */}
             <div className="flex gap-2 justify-end px-5 py-3.5 border-t border-border">
-              <Button variant="ghost" size="sm" onClick={closeModal}>Cancel</Button>
+              <Button variant="ghost" size="sm" onClick={closeModal}>{tr('common.cancel')}</Button>
               <Button variant="primary" size="sm" disabled={!timeInput.trim()} loading={isPending} onClick={logTime}>
-                Save
+                {tr('common.save')}
               </Button>
             </div>
           </div>
@@ -2644,7 +2659,7 @@ function CreateBranchPanel({ task, projectKey = 'TASK' }: { task: Task; projectK
           className="flex-1 flex items-center justify-between gap-1.5 px-3 py-2 text-sm border border-border rounded-lg text-fg-muted hover:text-fg hover:border-accent/50 transition-colors"
         >
           <span className="flex items-center gap-1.5">
-            <GitBranch className="w-3.5 h-3.5" /> Create branch
+            <GitBranch className="w-3.5 h-3.5" /> {tr('taskDetail.createBranch')}
           </span>
           <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', expanded && 'rotate-180')} />
         </button>
@@ -2653,7 +2668,7 @@ function CreateBranchPanel({ task, projectKey = 'TASK' }: { task: Task; projectK
       {expanded && (
         <div className="rounded-lg border border-border bg-bg-elevated p-3 space-y-2">
           <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide">
-            GIT CREATE & CHECKOUT A NEW BRANCH
+            {tr('taskDetail.gitCreateBranch')}
           </p>
           <div className="flex items-center gap-2">
             <input
@@ -2663,7 +2678,7 @@ function CreateBranchPanel({ task, projectKey = 'TASK' }: { task: Task; projectK
             />
             <button
               onClick={copyCommand}
-              title={copied ? 'Copied!' : 'Copy command'}
+              title={copied ? tr('taskDetail.copied') : tr('taskDetail.copyCommand')}
               className={cn(
                 'shrink-0 flex items-center justify-center w-8 h-8 rounded-md border border-border transition-colors',
                 copied ? 'bg-success/10 border-success text-success' : 'hover:bg-bg-subtle text-fg-muted hover:text-fg',
@@ -2680,11 +2695,11 @@ function CreateBranchPanel({ task, projectKey = 'TASK' }: { task: Task; projectK
 
       <div className="flex gap-1.5 text-xs text-fg-muted">
         <button className="flex items-center gap-1 hover:text-accent transition-colors">
-          <Link2 className="w-3 h-3" /> Link PR
+          <Link2 className="w-3 h-3" /> {tr('taskDetail.linkPr')}
         </button>
         <span>·</span>
         <button className="flex items-center gap-1 hover:text-accent transition-colors">
-          <Link2 className="w-3 h-3" /> Link commit
+          <Link2 className="w-3 h-3" /> {tr('taskDetail.linkCommit')}
         </button>
       </div>
     </div>

@@ -30,15 +30,15 @@ type Period = 'week' | 'month' | 'quarter' | 'year' | 'custom'
 const PERIOD_DAYS: Record<Exclude<Period, 'custom'>, number> = { week: 7, month: 30, quarter: 90, year: 365 }
 
 const PRIORITY_OPTS = [
-  { value: 'urgent', label: 'Highest' }, { value: 'high', label: 'High' },
-  { value: 'medium', label: 'Medium' }, { value: 'low', label: 'Low' }, { value: 'lowest', label: 'Lowest' },
+  { value: 'urgent' }, { value: 'high' },
+  { value: 'medium' }, { value: 'low' }, { value: 'lowest' },
 ]
 
-const GRADE_STYLE: Record<DeveloperGrade, { label: string; cls: string }> = {
-  excellent: { label: 'Excellent', cls: 'bg-success/15 text-success' },
-  good: { label: 'Good', cls: 'bg-info/15 text-info' },
-  average: { label: 'Average', cls: 'bg-warning/15 text-warning' },
-  poor: { label: 'Poor', cls: 'bg-danger/15 text-danger' },
+const GRADE_STYLE: Record<DeveloperGrade, { cls: string }> = {
+  excellent: { cls: 'bg-success/15 text-success' },
+  good: { cls: 'bg-info/15 text-info' },
+  average: { cls: 'bg-warning/15 text-warning' },
+  poor: { cls: 'bg-danger/15 text-danger' },
 }
 
 const PIE_COLORS = ['#10b981', '#eab308', '#f97316', '#ef4444']
@@ -133,7 +133,7 @@ export function DeveloperReportPage() {
           <p className="text-xs text-fg-muted mt-0.5">{t('pages.developerReportSubtitle')}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Button variant="primary" size="sm" className="gap-1.5 shrink-0" onClick={exportXlsx} loading={exporting}><Download className="w-4 h-4" /> Export Excel</Button>
+          <Button variant="primary" size="sm" className="gap-1.5 shrink-0" onClick={exportXlsx} loading={exporting}><Download className="w-4 h-4" /> {t('reports.exportCsv')}</Button>
         </div>
       </div>
 
@@ -143,7 +143,7 @@ export function DeveloperReportPage() {
           {(['week', 'month', 'quarter', 'year'] as const).map((p) => (
             <button key={p} onClick={() => applyPeriod(p)}
               className={`px-3 py-1.5 text-xs font-medium capitalize transition-colors ${period === p ? 'bg-accent text-white' : 'text-fg-muted hover:bg-bg-subtle'}`}>
-              {p}
+              {t('activity.period.' + p)}
             </button>
           ))}
         </div>
@@ -156,15 +156,15 @@ export function DeveloperReportPage() {
         </div>
         <select value={userId} onChange={(e) => setUserId(e.target.value)}
           className="h-8 rounded-lg border border-border bg-bg-elevated px-2 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-accent">
-          <option value="">All developers</option>
+          <option value="">{t('developerReport.allDevelopers')}</option>
           {members.map((m) => <option key={m.userId} value={m.userId}>{m.user.fullName}</option>)}
         </select>
         <select value={priority} onChange={(e) => setPriority(e.target.value)}
           className="h-8 rounded-lg border border-border bg-bg-elevated px-2 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-accent">
-          <option value="">All priorities</option>
-          {PRIORITY_OPTS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+          <option value="">{t('myTasks.allPriorities')}</option>
+          {PRIORITY_OPTS.map((p) => <option key={p.value} value={p.value}>{t('priority.' + p.value)}</option>)}
         </select>
-        <Button variant="ghost" size="sm" onClick={reset}>Reset</Button>
+        <Button variant="ghost" size="sm" onClick={reset}>{t('filter.reset')}</Button>
       </div>
 
       {/* Body */}
@@ -175,20 +175,20 @@ export function DeveloperReportPage() {
             [...Array(7)].map((_, i) => <Skeleton key={i} className="h-20 rounded-card" />)
           ) : (
             <>
-              <Kpi icon={<ListTodo />} color="text-fg" value={data?.kpis.totalTasks ?? 0} label="Total Tasks" />
-              <Kpi icon={<CheckCircle2 />} color="text-success" value={data?.kpis.completedTasks ?? 0} label="Completed" />
-              <Kpi icon={<Percent />} color="text-accent" value={`${data?.kpis.completionRate ?? 0}%`} label="Completion Rate" />
-              <Kpi icon={<Clock />} color="text-info" value={`${data?.kpis.loggedHours ?? 0}h`} label="Logged Hours" />
-              <Kpi icon={<AlertTriangle />} color="text-danger" value={data?.kpis.overdueTasks ?? 0} label="Overdue" />
-              <Kpi icon={<Timer />} color="text-warning" value={`${data?.kpis.avgCompletionTime ?? 0}d`} label="Avg Completion" />
-              <Kpi icon={<Gauge />} color="text-violet-400" value={`${data?.kpis.productivityScore ?? 0}%`} label="Productivity" />
+              <Kpi icon={<ListTodo />} color="text-fg" value={data?.kpis.totalTasks ?? 0} label={t('developerReport.totalTasks')} />
+              <Kpi icon={<CheckCircle2 />} color="text-success" value={data?.kpis.completedTasks ?? 0} label={t('summary.completed')} />
+              <Kpi icon={<Percent />} color="text-accent" value={`${data?.kpis.completionRate ?? 0}%`} label={t('reports.completionRate')} />
+              <Kpi icon={<Clock />} color="text-info" value={`${data?.kpis.loggedHours ?? 0}h`} label={t('developerReport.loggedHours')} />
+              <Kpi icon={<AlertTriangle />} color="text-danger" value={data?.kpis.overdueTasks ?? 0} label={t('summary.overdue')} />
+              <Kpi icon={<Timer />} color="text-warning" value={`${data?.kpis.avgCompletionTime ?? 0}d`} label={t('developerReport.avgCompletion')} />
+              <Kpi icon={<Gauge />} color="text-violet-400" value={`${data?.kpis.productivityScore ?? 0}%`} label={t('developerReport.productivity')} />
             </>
           )}
         </div>
 
         {/* Charts */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <ChartCard title="Task Distribution" loading={isLoading}>
+          <ChartCard title={t('developerReport.taskDistribution')} loading={isLoading}>
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={data?.taskDistribution ?? []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -204,7 +204,7 @@ export function DeveloperReportPage() {
             </ResponsiveContainer>
           </ChartCard>
 
-          <ChartCard title="Logged Hours Trend" loading={isLoading}>
+          <ChartCard title={t('developerReport.loggedHoursTrend')} loading={isLoading}>
             <ResponsiveContainer width="100%" height={260}>
               <LineChart data={data?.loggedHoursTrend ?? []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
@@ -216,7 +216,7 @@ export function DeveloperReportPage() {
             </ResponsiveContainer>
           </ChartCard>
 
-          <ChartCard title="Completion Trend" loading={isLoading}>
+          <ChartCard title={t('developerReport.completionTrend')} loading={isLoading}>
             <ResponsiveContainer width="100%" height={260}>
               <AreaChart data={data?.completionTrend ?? []}>
                 <defs>
@@ -234,7 +234,7 @@ export function DeveloperReportPage() {
             </ResponsiveContainer>
           </ChartCard>
 
-          <ChartCard title="Overdue Analysis" loading={isLoading}>
+          <ChartCard title={t('developerReport.overdueAnalysis')} loading={isLoading}>
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie data={data?.overdueAnalysis ?? []} dataKey="value" nameKey="name"
@@ -250,17 +250,17 @@ export function DeveloperReportPage() {
 
         {/* Developer summary table */}
         <div className="rounded-card border border-border bg-bg-elevated overflow-hidden">
-          <p className="text-sm font-semibold text-fg px-5 py-3 border-b border-border">Developer Summary</p>
+          <p className="text-sm font-semibold text-fg px-5 py-3 border-b border-border">{t('developerReport.developerSummary')}</p>
           {isLoading ? (
             <div className="p-5 space-y-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
           ) : (data?.developers.length ?? 0) === 0 ? (
-            <div className="py-10"><EmptyState title="No developer data in this period" /></div>
+            <div className="py-10"><EmptyState title={t('developerReport.noDeveloperData')} /></div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-bg-surface text-fg-subtle">
                   <tr className="text-left">
-                    {['Developer', 'Assigned', 'Completed', 'Rate', 'Logged', 'Avg Dur.', 'Overdue', 'Score', 'Status'].map((h) => (
+                    {[t('developerReport.developer'), t('developerReport.assigned'), t('summary.completed'), t('developerReport.rate'), t('taskDetail.logged'), t('developerReport.avgDuration'), t('summary.overdue'), t('developerReport.score'), t('taskDetail.fStatus')].map((h) => (
                       <th key={h} className="px-4 py-2 font-medium whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -285,7 +285,7 @@ export function DeveloperReportPage() {
                       <td className="px-4 py-2 font-semibold text-fg">{d.productivityScore}%</td>
                       <td className="px-4 py-2">
                         <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${GRADE_STYLE[d.grade].cls}`}>
-                          {GRADE_STYLE[d.grade].label}
+                          {t('developerReport.grade.' + d.grade)}
                         </span>
                       </td>
                     </tr>
@@ -298,55 +298,55 @@ export function DeveloperReportPage() {
 
         {/* Task details table */}
         <div className="rounded-card border border-border bg-bg-elevated overflow-hidden">
-          <p className="text-sm font-semibold text-fg px-5 py-3 border-b border-border">Task Details</p>
+          <p className="text-sm font-semibold text-fg px-5 py-3 border-b border-border">{t('developerReport.taskDetails')}</p>
           {isLoading ? (
             <div className="p-5 space-y-2">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-9" />)}</div>
           ) : (data?.taskDetails.length ?? 0) === 0 ? (
-            <div className="py-10"><EmptyState title="No tasks in this period" /></div>
+            <div className="py-10"><EmptyState title={t('developerReport.noTasksInPeriod')} /></div>
           ) : (
             <div className="overflow-x-auto max-h-[480px] overflow-y-auto scrollbar-thin">
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-bg-surface text-fg-subtle z-10">
                   <tr className="text-left">
-                    {['Summary', 'Priority', 'Status', 'Est.', 'Logged', 'Due', 'Completed', 'Overdue'].map((h) => (
+                    {[t('pages.summary'), t('taskDetail.fPriority'), t('taskDetail.fStatus'), t('taskDetail.estimated'), t('taskDetail.logged'), t('taskDetail.fDueDate'), t('summary.completed'), t('summary.overdue')].map((h) => (
                       <th key={h} className="px-4 py-2 font-medium whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {pagedTasks.map((t) => (
+                  {pagedTasks.map((task) => (
                     <tr
-                      key={t.id}
-                      onClick={() => setOpenTaskId(t.id)}
+                      key={task.id}
+                      onClick={() => setOpenTaskId(task.id)}
                       className="border-t border-border hover:bg-bg-subtle/50 cursor-pointer"
                     >
-                      <td className="px-4 py-2 max-w-xs"><span className="text-accent hover:underline truncate block">{t.title}</span></td>
-                      <td className="px-4 py-2"><PriorityBadge priority={t.priority} /></td>
+                      <td className="px-4 py-2 max-w-xs"><span className="text-accent hover:underline truncate block">{task.title}</span></td>
+                      <td className="px-4 py-2"><PriorityBadge priority={task.priority} /></td>
                       <td className="px-4 py-2">
-                        {t.columnName ? (
+                        {task.columnName ? (
                           <span
                             className="inline-flex rounded-md border px-2 py-0.5 text-xs font-medium"
-                            style={t.columnColor
-                              ? { backgroundColor: `${t.columnColor}1A`, color: t.columnColor, borderColor: `${t.columnColor}55` }
+                            style={task.columnColor
+                              ? { backgroundColor: `${task.columnColor}1A`, color: task.columnColor, borderColor: `${task.columnColor}55` }
                               : undefined}
                           >
-                            {t.columnName}
+                            {task.columnName}
                           </span>
                         ) : (
-                          <StatusBadge status={t.status} />
+                          <StatusBadge status={task.status} />
                         )}
                       </td>
-                      <td className="px-4 py-2 text-fg-muted">{t.estimatedHours ?? '—'}</td>
-                      <td className="px-4 py-2 text-fg-muted">{t.loggedHours != null ? `${t.loggedHours}h` : '—'}</td>
-                      <td className="px-4 py-2 text-fg-muted whitespace-nowrap">{t.dueDate ? formatZonedDate(t.dueDate, timezone, 'en-US') : '—'}</td>
-                      <td className="px-4 py-2 text-fg-muted whitespace-nowrap">{t.completedDate ? formatZonedDate(t.completedDate, timezone, 'en-US') : '—'}</td>
+                      <td className="px-4 py-2 text-fg-muted">{task.estimatedHours ?? '—'}</td>
+                      <td className="px-4 py-2 text-fg-muted">{task.loggedHours != null ? `${task.loggedHours}h` : '—'}</td>
+                      <td className="px-4 py-2 text-fg-muted whitespace-nowrap">{task.dueDate ? formatZonedDate(task.dueDate, timezone, 'en-US') : '—'}</td>
+                      <td className="px-4 py-2 text-fg-muted whitespace-nowrap">{task.completedDate ? formatZonedDate(task.completedDate, timezone, 'en-US') : '—'}</td>
                       <td className="px-4 py-2">
-                        {t.overdue || t.lateDays > 0 ? (
+                        {task.overdue || task.lateDays > 0 ? (
                           <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-danger/15 text-danger whitespace-nowrap">
-                            Late by {t.lateDays}d
+                            {t('developerReport.lateByDays', { days: task.lateDays })}
                           </span>
                         ) : (
-                          <span className="text-success">On time</span>
+                          <span className="text-success">{t('developerReport.onTime')}</span>
                         )}
                       </td>
                     </tr>
@@ -357,7 +357,7 @@ export function DeveloperReportPage() {
           )}
           {taskDetails.length > 0 && (
             <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-border text-xs text-fg-muted">
-              <span>{taskDetails.length} tasks</span>
+              <span>{t('board.tasksCount', { count: taskDetails.length })}</span>
               {taskTotalPages > 1 && (
                 <div className="flex items-center gap-2">
                   <Button variant="outline" size="sm" disabled={taskPage <= 1} onClick={() => setTaskPage((p) => Math.max(1, p - 1))}>{t('activity.prev')}</Button>

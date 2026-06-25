@@ -194,7 +194,7 @@ export function FilterBar({projectId}: FilterBarProps) {
                                             <span className="flex items-center justify-center w-[26px] h-[26px] rounded-full bg-bg-subtle text-fg-subtle">
                                                 <UserX className="w-3.5 h-3.5"/>
                                             </span>
-                                            <span>Unassigned</span>
+                                            <span>{t('common.unassigned')}</span>
                                         </button>
                                         {members.map((m) => {
                                             const active = board.assigneeId?.includes(m.userId)

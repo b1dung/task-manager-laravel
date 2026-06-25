@@ -17,18 +17,18 @@ import { TaskDetailModal } from '@/pages/board/components/TaskDetailModal'
 type Tab = 'assigned' | 'reported' | 'watching'
 
 // Mirror the board's task representation (TaskCard) so fields stay in sync.
-const PRIORITY_ICON: Record<string, { svg: string; label: string }> = {
-  urgent: { svg: '/priority/highest_new.svg', label: 'Urgent' },
-  high: { svg: '/priority/high_new.svg', label: 'High' },
-  medium: { svg: '/priority/medium_new.svg', label: 'Medium' },
-  low: { svg: '/priority/low_new.svg', label: 'Low' },
-  lowest: { svg: '/priority/lowest_new.svg', label: 'Lowest' },
+const PRIORITY_ICON: Record<string, { svg: string }> = {
+  urgent: { svg: '/priority/highest_new.svg' },
+  high: { svg: '/priority/high_new.svg' },
+  medium: { svg: '/priority/medium_new.svg' },
+  low: { svg: '/priority/low_new.svg' },
+  lowest: { svg: '/priority/lowest_new.svg' },
 }
-const STATUS_CFG: Record<string, { label: string; cls: string }> = {
-  todo: { label: 'Todo', cls: 'text-fg-muted bg-bg-subtle border-border' },
-  in_progress: { label: 'Progress', cls: 'text-info bg-info/10 border-info/30' },
-  in_review: { label: 'Review', cls: 'text-warning bg-warning/10 border-warning/30' },
-  done: { label: 'Done', cls: 'text-success bg-success/10 border-success/30' },
+const STATUS_CFG: Record<string, { cls: string }> = {
+  todo: { cls: 'text-fg-muted bg-bg-subtle border-border' },
+  in_progress: { cls: 'text-info bg-info/10 border-info/30' },
+  in_review: { cls: 'text-warning bg-warning/10 border-warning/30' },
+  done: { cls: 'text-success bg-success/10 border-success/30' },
 }
 
 function getProjectKey(name: string): string {

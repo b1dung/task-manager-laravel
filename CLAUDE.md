@@ -80,9 +80,13 @@ Layout: `src/api/*.ts` (one typed axios client per domain), `src/pages/<feature>
 
 **Routing**: pages are lazy in `App.tsx` via `lazyNamed`; wrap admin/global routes in `<RequirePermission permission="…">`; add a `Sidebar.tsx` nav item with `requiresPermission`. Task deep-link = board route `?selectedIssue=<id>`.
 
+**Auth public routes**: `/login` and `/register` are wrapped in `PublicOnlyRoute` in `App.tsx`. If `useAuthStore` has both `isAuthenticated` and an `accessToken`, those pages redirect to `/projects`; only logout should clear the token and allow returning to login/register.
+
 **UI**: Tailwind with design tokens (`text-fg`/`text-fg-muted`/`text-fg-subtle`, `bg-bg-surface`/`bg-bg-elevated`/`bg-bg-subtle`, `border-border`, `text-accent`, `text-success/info/warning/danger`). Compose classes with `cn()`. Reuse `@/components/ui`. Modals via `createPortal` + fixed overlay (`z-[60]`). Charts: recharts; use `<Cell>` for per-item colours, white tooltip text on the dark theme.
 
 **i18n**: every user-facing string uses `t('ns.key')`; add the key to **all three** language blocks (vi → en → ja) in `resources.ts`. Keep keys on the existing single-line namespace objects.
+
+**Auth language sync**: login/register pages use `AuthLanguagePicker` at the bottom of the auth card. It renders the site `LanguageFlag` only (no lucide language SVG) and changes i18next before auth. On successful login/register/OAuth callback, use `currentAppLanguage()` and store `{ ...user, language }` via `setAuth`; if backend `user.language` differs, fire-and-forget `usersApi.update(user.id, { language })` so the selected public-page language is preserved inside the app and persisted server-side.
 
 **Adding a Task field end-to-end**: backend migration + `Task` casts/relation + `TaskResource` (camelCase) + controller validation/`EAGER`/sync; then FE `api/tasks.ts` `Task` & `UpdateTaskDto` + the `TaskDetailModal` field (often parameterize an existing field component with a `variant` rather than duplicating). Typecheck with `tsconfig.app.json` and update test fixtures (`__tests__`) that build `Task`/`SubtaskPreview` literals.
 
@@ -118,3 +122,24 @@ The board opens a task from `?selectedIssue=<taskId>` and stays in sync with the
 
 - Match existing code style; FE labels use i18next `t()` — add keys to all **3** languages (vi/en/ja) in `frontend/src/i18n/resources.ts`.
 - After editing a file via the `\\wsl.localhost` path, the executable bit can be stripped — `chmod +x` shell scripts before running.
+
+## TODO — i18n sweep (convert ALL hardcoded UI text to 3 languages)
+
+Goal: every user-facing string (column/section titles, input placeholders, button text, labels, tooltips, toasts, menu items) goes through i18next `t()` with keys added to **all 3** blocks (vi → en → ja) in `frontend/src/i18n/resources.ts`. Keys live on the existing **single-line** namespace objects (`common`, `taskDetail`, `board`, …). Verify with `cd frontend && npx tsc --noEmit -p tsconfig.app.json` (root tsconfig checks nothing). Components without the hook need `const { t: tr } = useTranslation()` added. Module-level const label maps (e.g. `STATUS_META`/`PRIORITY_META` `.label`) must be translated **at render** (lookup `t()` by key), not in the const.
+
+**Done**
+- `TaskDetailModal.tsx` — core interactive text: tab labels, Detail field/section labels (Assignee/QA Assignee/Priority/Due date/Requester/Reporter/Time tracking/QA time tracking/Parent/Team/Start date/Details/Development), Description/Subtasks/Linked-items headings + Save/Cancel/Add/Link buttons, Comments tab (placeholder, "Press M", quick replies, edit Save/Cancel, "(edited)"), Work Log tab, Time Tracking modal (all labels/placeholders/radios/Cancel + toast + format errors + display), History tab (actor avatar+name, action labels, field diff labels, "logged Nh"/QA, None/Unassigned/Unknown user/System), DetailHeader overflow menu. Keys added under `common` (`unassigned`,`add`) and `taskDetail` (large batch).
+- `LoginPage.tsx` / `RegisterPage.tsx` — form labels/placeholders, 2FA label/validation, forgot-password link, invite/pending states, and auth language picker are translated. Language picker sits at the bottom and uses the same country-flag icon style as the in-app account menu.
+- Public auth language now stays in sync after login/register/OAuth: selected language is written into auth store and persisted to the user profile when needed.
+- `NotFoundPage.tsx`, `ErrorBoundary.tsx`, `ForgotPasswordPage.tsx`, `ResetPasswordPage.tsx`, `VerifyEmailPage.tsx`, `SecureImage.tsx`, `NotificationsDropdown.tsx`, account session/2FA sections, and remaining obvious user-management email labels/placeholders have been moved to i18n keys.
+- `/login` and `/register` are public-only routes: an authenticated user with an access token is redirected to `/projects` unless they logout.
+
+**Remaining in `TaskDetailModal.tsx`**
+- `STATUS_META` / `PRIORITY_META` `.label` (To Do/In Progress/In Review/Done; Urgent/High/Medium/Low/Lowest) — translate at render; check `board` namespace for existing status/priority keys to reuse.
+- Editor toolbar `title=` tooltips (Bold/Italic/Heading/Link/…), DetailHeader `title=` tooltips (Copy task ID/Watch/Share/Open full page/Add child task), `TitleEditor` placeholder, `AttachmentsSection`, `CreateBranchPanel`, `SubtaskStatusPicker` text, `'2h 30m'` sample placeholder.
+
+**Remaining files** (grep each for hardcoded JSX text / `placeholder="…"` / `label: '…'` / button children):
+- `src/pages/board/BoardPage.tsx` + board column headers/card menus/inputs.
+- `src/pages/users/UserManagementPage.tsx`; `src/layout/Sidebar.tsx`.
+- `src/pages/reports/*`, `projects/*`, `settings/*`, `my-tasks/*` (33 page files total) and `src/components/ui/*`.
+- Sweep helper: `grep -rnE 'placeholder="[A-Za-z]|>[A-Z][a-z]+ ?[A-Za-z ]*<' src/pages src/components src/layout`.

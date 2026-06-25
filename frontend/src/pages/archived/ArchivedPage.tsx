@@ -123,8 +123,8 @@ export function ArchivedPage() {
   })
 
   const chips = [
-    { key: 'tasks' as Tab, label: 'tasks', count: tasks.length, icon: <ListTodo className="w-3.5 h-3.5" /> },
-    ...(canManageProjects ? [{ key: 'projects' as Tab, label: 'projects', count: projects.length, icon: <Folder className="w-3.5 h-3.5" /> }] : []),
+    { key: 'tasks' as Tab, label: t('archived.tabTasks'), count: tasks.length, icon: <ListTodo className="w-3.5 h-3.5" /> },
+    ...(canManageProjects ? [{ key: 'projects' as Tab, label: t('archived.tabProjects'), count: projects.length, icon: <Folder className="w-3.5 h-3.5" /> }] : []),
   ]
 
   return (

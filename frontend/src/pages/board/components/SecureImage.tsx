@@ -4,6 +4,7 @@ import Image, { type ImageOptions } from '@tiptap/extension-image'
 import { ReactNodeViewRenderer, NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
 import { attachmentsApi, attachmentFilename } from '@/api/attachments'
 import { cn } from '@/lib/utils'
+import i18n from '@/i18n'
 
 interface SecureImageOptions { projectId: string }
 
@@ -37,7 +38,7 @@ function SecureImageView({ node, extension, selected }: NodeViewProps) {
   return (
     <NodeViewWrapper as="div" className="my-2">
       {failed ? (
-        <span className="inline-block rounded border border-border bg-bg-subtle px-2 py-1 text-xs text-fg-subtle">Không tải được ảnh</span>
+        <span className="inline-block rounded border border-border bg-bg-subtle px-2 py-1 text-xs text-fg-subtle">{i18n.t('taskDetail.imageLoadFailed')}</span>
       ) : resolved ? (
         <img src={resolved} alt={alt} data-drag-handle className={cn('max-w-full rounded', selected && 'ring-2 ring-accent')} />
       ) : (

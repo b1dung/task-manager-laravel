@@ -5,6 +5,14 @@ import { en, ja, vi } from './resources'
 
 export type AppLanguage = 'en' | 'vi' | 'ja'
 
+export function normalizeAppLanguage(language: string | undefined): AppLanguage {
+  return language === 'ja' || language === 'vi' || language === 'en' ? language : 'en'
+}
+
+export function currentAppLanguage(): AppLanguage {
+  return normalizeAppLanguage(i18n.resolvedLanguage ?? i18n.language)
+}
+
 export function appLocale(): string {
   return i18n.resolvedLanguage === 'ja' ? 'ja-JP' : i18n.resolvedLanguage === 'en' ? 'en-US' : 'vi-VN'
 }

@@ -307,8 +307,8 @@ function CreateProjectModal({ open, onClose }: { open: boolean; onClose: () => v
           <label className="mb-1 block text-xs font-medium text-fg-muted">{t('projects.name')} *</label>
           <Input
             {...register('name', {
-              required: 'Tên bắt buộc',
-              minLength: { value: 2, message: 'Tối thiểu 2 ký tự' },
+              required: t('projects.nameRequired'),
+              minLength: { value: 2, message: t('projects.nameMin2') },
             })}
             placeholder={t('projects.namePlaceholder')}
           />
@@ -316,18 +316,18 @@ function CreateProjectModal({ open, onClose }: { open: boolean; onClose: () => v
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-fg-muted">Key (slug) *</label>
+          <label className="mb-1 block text-xs font-medium text-fg-muted">{t('projects.key')} *</label>
           <Input
             {...register('key', {
               required: true,
               pattern: {
                 value: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-                message: 'Chỉ chữ thường, số, dấu gạch ngang',
+                message: t('projects.keyPattern'),
               },
             })}
-            placeholder="website-redesign"
+            placeholder={t('projects.keyPlaceholder')}
           />
-          <p className="mt-0.5 text-[11px] text-fg-subtle">Auto-generate từ tên. Dùng trong URL.</p>
+          <p className="mt-0.5 text-[11px] text-fg-subtle">{t('projects.keyHint')}</p>
           {errors.key && <p className="mt-1 text-xs text-danger">{errors.key.message}</p>}
         </div>
 
@@ -337,7 +337,7 @@ function CreateProjectModal({ open, onClose }: { open: boolean; onClose: () => v
         </div>
 
         <div>
-          <label className="mb-2 block text-xs font-medium text-fg-muted">Màu</label>
+          <label className="mb-2 block text-xs font-medium text-fg-muted">{t('projects.color')}</label>
           <div className="flex gap-2">
             {PALETTE.map((c) => (
               <button

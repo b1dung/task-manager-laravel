@@ -6,10 +6,13 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { Clock } from 'lucide-react'
 import { authApi } from '@/api/auth'
+import { usersApi } from '@/api/users'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { Button, Input, Modal } from '@/components/ui'
 import { useToast } from '@/hooks/useToast'
 import { useTranslation } from 'react-i18next'
+import { AuthLanguagePicker } from './AuthLanguagePicker'
+import { currentAppLanguage } from '@/i18n'
 
 type FormData = { email: string; password: string; otp?: string }
 
@@ -24,7 +27,7 @@ export function LoginPage() {
   const schema = useMemo(() => z.object({
     email: z.string().email(t('auth.invalidEmail')),
     password: z.string().min(6, t('auth.passwordMin6')),
-    otp: z.string().regex(/^\d{6}$/, 'Mã 2FA phải có 6 chữ số').optional().or(z.literal('')),
+    otp: z.string().regex(/^\d{6}$/, t('auth.otpInvalid')).optional().or(z.literal('')),
   }), [t])
   const navigate = useNavigate()
   const { setAuth } = useAuthStore()
@@ -39,7 +42,9 @@ export function LoginPage() {
   const { mutate, isPending } = useMutation({
     mutationFn: authApi.login,
     onSuccess: ({ user, accessToken, refreshToken }) => {
-      setAuth(user, accessToken, refreshToken)
+      const language = currentAppLanguage()
+      setAuth({ ...user, language }, accessToken, refreshToken)
+      if (user.language !== language) void usersApi.update(user.id, { language })
       navigate('/projects')
     },
     onError: (err) => {
@@ -65,14 +70,14 @@ export function LoginPage() {
             {...register('email')}
             label={t('auth.email')}
             type="email"
-            placeholder="you@example.com"
+            placeholder={t('auth.emailPlaceholder')}
             error={errors.email?.message}
             autoComplete="email"
           />
           {SHOW_TWO_FACTOR && (
             <Input
               {...register('otp')}
-              label="Mã 2FA (nếu đã bật)"
+              label={t('auth.otpLabel')}
               inputMode="numeric"
               maxLength={6}
               autoComplete="one-time-code"
@@ -91,7 +96,7 @@ export function LoginPage() {
             {t('auth.login')}
           </Button>
           <Link to="/forgot-password" className="block text-right text-xs text-accent hover:underline">
-            Quên mật khẩu?
+            {t('auth.forgotPassword')}
           </Link>
         </form>
 
@@ -101,6 +106,10 @@ export function LoginPage() {
             {t('auth.register')}
           </Link>
         </p>
+
+        <div className="flex justify-center">
+          <AuthLanguagePicker />
+        </div>
       </div>
 
       <Modal open={showPending} onClose={() => setShowPending(false)} title={t('auth.pendingTitle')} size="sm">

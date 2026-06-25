@@ -13,6 +13,10 @@ export interface RealtimeSocket {
 
 let echo: Echo<'reverb'> | Echo<'pusher'> | null = null
 
+// Ref-count subscribers per channel so multiple hooks (e.g. the global RealtimeSync
+// + BoardPage) can share one channel; only leave when the last subscriber unmounts.
+const channelRefs = new Map<string, number>()
+
 /** Lazily create the shared Echo client (Pusher cloud or self-hosted Reverb). */
 function ensureEcho(accessToken: string): Echo<'reverb'> | Echo<'pusher'> {
   window.Pusher = Pusher
@@ -42,13 +46,20 @@ function usePrivateChannel(channelName?: string): RealtimeSocket | null {
 
     const client = ensureEcho(accessToken)
     const channel = client.private(channelName)
+    channelRefs.set(channelName, (channelRefs.get(channelName) ?? 0) + 1)
     const adapter: RealtimeSocket = { on: (event, handler) => channel.listen(`.${event}`, handler), off: (event, handler) => channel.stopListening(`.${event}`, handler) }
     let active = true
     queueMicrotask(() => { if (active) setSocket(adapter) })
 
     return () => {
       active = false
-      echo?.leave(channelName)
+      const remaining = (channelRefs.get(channelName) ?? 1) - 1
+      if (remaining <= 0) {
+        channelRefs.delete(channelName)
+        echo?.leave(channelName)
+      } else {
+        channelRefs.set(channelName, remaining)
+      }
       setSocket(null)
     }
   }, [accessToken, channelName])

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ProjectEvent;
 use App\Http\Resources\TaskLinkResource;
 use App\Models\Task;
 use App\Models\TaskLink;
@@ -48,6 +49,8 @@ class TaskLinkController extends Controller
             'link_type' => $data['linkType'],
         ]);
 
+        ProjectEvent::dispatch($projectId, 'tasklink:changed', ['taskId' => $taskId]);
+
         return response()->ok(new TaskLinkResource($link->load(['source', 'target'])), 201);
     }
 
@@ -57,6 +60,8 @@ class TaskLinkController extends Controller
             ->where(fn ($q) => $q->where('source_task_id', $taskId)->orWhere('target_task_id', $taskId))
             ->firstOrFail()
             ->delete();
+
+        ProjectEvent::dispatch($projectId, 'tasklink:changed', ['taskId' => $taskId]);
 
         return response()->ok(null);
     }

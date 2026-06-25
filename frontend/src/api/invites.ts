@@ -12,6 +12,8 @@ export interface Invite {
 export interface CreatedInvite extends Invite {
   /** Full register link with the raw token — shown once at creation. */
   link: string
+  /** Whether the invitation email was sent successfully (false = SMTP failed, share the link manually). */
+  emailSent: boolean
 }
 
 export interface InviteValidation {

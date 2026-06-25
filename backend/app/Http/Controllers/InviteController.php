@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Invite;
 use App\Models\User;
+use App\Services\MailService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -11,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 class InviteController extends Controller
 {
+    public function __construct(private readonly MailService $mail) {}
+
     public function create(Request $request): JsonResponse
     {
         $data = $request->validate(['email' => ['required', 'email'], 'roleId' => ['nullable', 'uuid', 'exists:roles,id']]);
@@ -30,7 +33,33 @@ class InviteController extends Controller
         $view = $this->view($invite);
         $view['link'] = rtrim(config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:5173')), '/').'/register?token='.$token;
 
+        // Send the invitation email. Don't fail the request if mail is down —
+        // the admin still gets the link in the response to share manually.
+        $view['emailSent'] = $this->sendInviteEmail($request, $invite, $view['link']);
+
         return response()->ok($view, 201);
+    }
+
+    private function sendInviteEmail(Request $request, Invite $invite, string $link): bool
+    {
+        $inviter = $request->user()->full_name ?: $request->user()->email;
+        $appName = config('app.name', 'TaskBoard');
+        $roleLine = $invite->role?->name ? 'Vai trò: '.$invite->role->name."\n" : '';
+        $body = "Xin chào,\n\n"
+            ."{$inviter} đã mời bạn tham gia {$appName}.\n"
+            .$roleLine
+            ."\nNhấn vào liên kết dưới đây để tạo tài khoản (hết hạn sau 7 ngày):\n{$link}\n\n"
+            ."Nếu bạn không mong đợi email này, hãy bỏ qua.\n";
+
+        try {
+            $this->mail->send($invite->email, "Bạn được mời tham gia {$appName}", $body);
+
+            return true;
+        } catch (\Throwable $e) {
+            report($e);
+
+            return false;
+        }
     }
 
     public function index(): JsonResponse

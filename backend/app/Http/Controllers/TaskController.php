@@ -210,6 +210,8 @@ class TaskController extends Controller
         $task = Task::where('project_id', $projectId)->findOrFail($id);
         $task->update(['archived_at' => now(), 'archived_by' => $request->user()->id]);
 
+        ProjectEvent::dispatch($projectId, 'task:updated', ['task' => (new TaskResource($task->fresh(self::EAGER)))->resolve()]);
+
         return response()->ok(new TaskResource($task->fresh(self::EAGER)));
     }
 
@@ -218,6 +220,8 @@ class TaskController extends Controller
         $task = Task::where('project_id', $projectId)->findOrFail($id);
         $task->update(['archived_at' => null, 'archived_by' => null]);
 
+        ProjectEvent::dispatch($projectId, 'task:updated', ['task' => (new TaskResource($task->fresh(self::EAGER)))->resolve()]);
+
         return response()->ok(new TaskResource($task->fresh(self::EAGER)));
     }
 
@@ -225,6 +229,8 @@ class TaskController extends Controller
     {
         $task = Task::withTrashed()->where('project_id', $projectId)->findOrFail($id);
         $task->restore();
+
+        ProjectEvent::dispatch($projectId, 'task:updated', ['task' => (new TaskResource($task->fresh(self::EAGER)))->resolve()]);
 
         return response()->ok(new TaskResource($task->fresh(self::EAGER)));
     }
@@ -246,6 +252,7 @@ class TaskController extends Controller
         WorkingHour::create(['task_id' => $task->id, 'user_id' => $request->user()->id, 'hours' => $data['hours'], 'is_qa' => $isQa, 'logged_date' => $data['loggedDate'] ?? now()->toDateString(), 'note' => $data['description'] ?? null]);
         $this->activity->record($request, $projectId, 'updated', 'task', $task->id, null, [($isQa ? 'qaLoggedHours' : 'loggedHours') => (float) $task->{$column}]);
         $this->notifications->taskEvent($projectId, $request->user()->id, 'time_logged', 'task', $task->id, ($isQa ? 'logged QA time on "' : 'logged time on "').$task->title.'"', [$task->assignee_id, $task->qa_assignee_id, $task->reporter_id]);
+        ProjectEvent::dispatch($projectId, 'task:updated', ['task' => (new TaskResource($task->fresh(self::EAGER)))->resolve()]);
 
         return response()->ok(new TaskResource($task->fresh(self::EAGER)));
     }

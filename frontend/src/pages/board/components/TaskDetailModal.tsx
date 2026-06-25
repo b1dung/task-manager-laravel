@@ -1621,7 +1621,6 @@ function RightColumn({ task, projectId, projectKey = 'TASK', onUpdate }: {
   const { t: tr } = useTranslation()
   const [detailsOpen, setDetailsOpen] = useState(true)
   const [devOpen, setDevOpen] = useState(false)
-  const [autoOpen, setAutoOpen] = useState(false)
 
   const { data: members = [] } = useQuery({
     queryKey: ['members', projectId],
@@ -1646,14 +1645,6 @@ function RightColumn({ task, projectId, projectKey = 'TASK', onUpdate }: {
       {/* Status + quick actions */}
       <div className="px-5 py-4 border-b border-border space-y-2">
         <StatusDropdown task={task} columns={columns} onUpdate={onUpdate} />
-        <div className="flex gap-2">
-          <Button variant="secondary" size="sm" className="flex-1 gap-1.5">
-            <Zap className="w-3.5 h-3.5" /> Automation
-          </Button>
-          <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-accent border-accent/30">
-            ✨ Improve
-          </Button>
-        </div>
       </div>
 
       {/* Details */}
@@ -1746,16 +1737,6 @@ function RightColumn({ task, projectId, projectKey = 'TASK', onUpdate }: {
         onToggle={() => setDevOpen(v => !v)}
       >
         <CreateBranchPanel task={task} projectKey={projectKey} />
-      </CollapsibleSection>
-
-      {/* Automation */}
-      <CollapsibleSection
-        title="Automation"
-        open={autoOpen}
-        onToggle={() => setAutoOpen(v => !v)}
-        badge={<Zap className="w-3.5 h-3.5 text-warning" />}
-      >
-        <p className="text-xs text-fg-muted">No active rules for this task.</p>
       </CollapsibleSection>
 
       {/* Footer */}

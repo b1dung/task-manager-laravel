@@ -1,4 +1,5 @@
 import { useSiteTimezone } from '@/hooks/useSiteTimezone'
+import { useToast } from '@/hooks/useToast'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
@@ -8,7 +9,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
 import { format, subDays } from 'date-fns'
-import { CheckCircle2, ListTodo, Percent, Clock, AlertTriangle, Timer, Gauge, Download, Printer } from 'lucide-react'
+import { CheckCircle2, ListTodo, Percent, Clock, AlertTriangle, Timer, Gauge, Download } from 'lucide-react'
 import { reportsApi, type DeveloperGrade, type DevReportParams } from '@/api/reports'
 import { membersApi } from '@/api/members'
 import { projectsApi } from '@/api/projects'
@@ -46,6 +47,7 @@ const CHART_TOOLTIP = { backgroundColor: '#1b1b23', border: '1px solid #2d2d38',
 export function DeveloperReportPage() {
   const { t } = useTranslation()
   const timezone = useSiteTimezone()
+  const toast = useToast()
   const { projectId = '' } = useParams<{ projectId: string }>()
 
   const [period, setPeriod] = useState<Period>('week')
@@ -104,17 +106,22 @@ export function DeveloperReportPage() {
     setPeriod('week'); setFrom(newFrom); setTo(newTo); setUserId(''); setPriority('')
   }
 
-  const exportCsv = () => {
-    if (!data) return
-    const header = ['Developer', 'Assigned', 'Completed', 'Completion Rate', 'Logged Hours', 'Avg Duration', 'Overdue', 'Productivity Score', 'Grade']
-    const rows = data.developers.map((d) => [
-      d.fullName, d.assigned, d.completed, `${d.completionRate}%`, d.loggedHours, `${d.avgDuration}d`, d.overdue, d.productivityScore, d.grade,
-    ])
-    const csv = [header, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
-    const a = document.createElement('a')
-    a.href = url; a.download = `developer-report-${from}_${to}.csv`; a.click()
-    URL.revokeObjectURL(url)
+  const [exporting, setExporting] = useState(false)
+  const exportXlsx = async () => {
+    setExporting(true)
+    try {
+      const blob = await reportsApi.exportDeveloperReportXlsx(projectId, {
+        from, to, userId: userId || undefined, priority: priority || undefined, baseUrl: window.location.origin,
+      })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = `developer-report-${from}_${to}-${format(new Date(), 'yyyyMMdd-HHmmss')}.xlsx`; a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.error(t('pages.exportFailed'))
+    } finally {
+      setExporting(false)
+    }
   }
 
   return (
@@ -126,8 +133,7 @@ export function DeveloperReportPage() {
           <p className="text-xs text-fg-muted mt-0.5">{t('pages.developerReportSubtitle')}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Button variant="outline" size="sm" onClick={exportCsv}><Download className="w-4 h-4" /> Export CSV</Button>
-          <Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="w-4 h-4" /> Export PDF</Button>
+          <Button variant="primary" size="sm" className="gap-1.5 shrink-0" onClick={exportXlsx} loading={exporting}><Download className="w-4 h-4" /> Export Excel</Button>
         </div>
       </div>
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ProjectEvent;
 use App\Http\Resources\ColumnResource;
 use App\Models\Column;
 use App\Models\Task;
@@ -32,6 +33,8 @@ class ColumnController extends Controller
             'position' => Column::where('project_id', $projectId)->exists() ? $position + 1 : 0,
         ]);
 
+        ProjectEvent::dispatch($projectId, 'column:changed', ['columnId' => $column->id]);
+
         return response()->ok(new ColumnResource($column), 201);
     }
 
@@ -55,6 +58,8 @@ class ColumnController extends Controller
         }
         $column->save();
 
+        ProjectEvent::dispatch($projectId, 'column:changed', ['columnId' => $column->id]);
+
         return response()->ok(new ColumnResource($column));
     }
 
@@ -65,6 +70,8 @@ class ColumnController extends Controller
             abort(400, 'Cannot delete a column with tasks');
         }
         $column->delete();
+
+        ProjectEvent::dispatch($projectId, 'column:changed', ['columnId' => $id]);
 
         return response()->ok(null);
     }
@@ -79,6 +86,8 @@ class ColumnController extends Controller
         foreach ($data['columnIds'] as $i => $columnId) {
             Column::where('project_id', $projectId)->where('id', $columnId)->update(['position' => $i]);
         }
+
+        ProjectEvent::dispatch($projectId, 'column:changed', ['columnIds' => $data['columnIds']]);
 
         return response()->ok(null);
     }

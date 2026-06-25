@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ProjectEvent;
 use App\Http\Resources\LabelResource;
 use App\Models\Label;
 use Illuminate\Http\JsonResponse;
@@ -29,6 +30,8 @@ class LabelController extends Controller
             'color' => $data['color'],
         ]);
 
+        ProjectEvent::dispatch($projectId, 'label:changed', ['labelId' => $label->id]);
+
         return response()->ok(new LabelResource($label), 201);
     }
 
@@ -45,12 +48,16 @@ class LabelController extends Controller
             'color' => $data['color'] ?? null,
         ]))->save();
 
+        ProjectEvent::dispatch($projectId, 'label:changed', ['labelId' => $label->id]);
+
         return response()->ok(new LabelResource($label));
     }
 
     public function destroy(string $projectId, string $id): JsonResponse
     {
         Label::where('project_id', $projectId)->findOrFail($id)->delete();
+
+        ProjectEvent::dispatch($projectId, 'label:changed', ['labelId' => $id]);
 
         return response()->ok(null);
     }

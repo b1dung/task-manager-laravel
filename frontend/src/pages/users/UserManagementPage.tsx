@@ -274,7 +274,7 @@ function InviteModal({ open, roles, onClose }: { open: boolean; roles: Role[]; o
   const toast = useToast()
   const [email, setEmail] = useState('')
   const [roleId, setRoleId] = useState('')
-  const [created, setCreated] = useState<{ email: string; link: string } | null>(null)
+  const [created, setCreated] = useState<{ email: string; link: string; emailSent: boolean } | null>(null)
   const [copied, setCopied] = useState(false)
 
   const { data: pending = [] } = useQuery({
@@ -291,7 +291,7 @@ function InviteModal({ open, roles, onClose }: { open: boolean; roles: Role[]; o
   const { mutate: submit, isPending } = useMutation({
     mutationFn: () => invitesApi.create({ email: email.trim(), roleId: roleId || undefined }),
     onSuccess: (inv) => {
-      setCreated({ email: inv.email, link: inv.link })
+      setCreated({ email: inv.email, link: inv.link, emailSent: inv.emailSent })
       setEmail(''); setRoleId('')
       qc.invalidateQueries({ queryKey: ['invites'] })
     },
@@ -321,8 +321,15 @@ function InviteModal({ open, roles, onClose }: { open: boolean; roles: Role[]; o
           <div className="space-y-3">
             <div className="flex items-start gap-2 rounded-lg border border-success/30 bg-success/5 px-3 py-2.5 text-sm">
               <Check className="w-4 h-4 text-success mt-0.5 shrink-0" />
-              <span className="text-fg-muted">{t('users.inviteCreatedMsg', { email: created.email })}</span>
+              <span className="text-fg-muted">
+                {created.emailSent
+                  ? t('users.inviteEmailSent', { email: created.email })
+                  : t('users.inviteCreatedMsg', { email: created.email })}
+              </span>
             </div>
+            {!created.emailSent && (
+              <p className="text-xs text-warning">{t('users.inviteEmailFailed')}</p>
+            )}
             <div className="flex items-center gap-2">
               <input readOnly value={created.link} className={cn(inputCls, 'font-mono text-xs')} />
               <Button variant="secondary" size="sm" onClick={copyLink}>

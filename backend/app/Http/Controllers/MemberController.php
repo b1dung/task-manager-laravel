@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ProjectEvent;
 use App\Http\Resources\MemberResource;
 use App\Models\ProjectMember;
 use App\Models\Task;
@@ -39,6 +40,8 @@ class MemberController extends Controller
         );
         $member->load('user');
 
+        ProjectEvent::dispatch($projectId, 'member:changed', ['userId' => $member->user_id]);
+
         return response()->ok(new MemberResource($member), 201);
     }
 
@@ -50,12 +53,16 @@ class MemberController extends Controller
         $member->update(['role' => $data['role']]);
         $member->load('user');
 
+        ProjectEvent::dispatch($projectId, 'member:changed', ['userId' => $userId]);
+
         return response()->ok(new MemberResource($member));
     }
 
     public function destroy(string $projectId, string $userId): JsonResponse
     {
         ProjectMember::where('project_id', $projectId)->where('user_id', $userId)->delete();
+
+        ProjectEvent::dispatch($projectId, 'member:changed', ['userId' => $userId]);
 
         return response()->ok(null);
     }

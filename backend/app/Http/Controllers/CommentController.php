@@ -73,6 +73,8 @@ class CommentController extends Controller
 
         $comment->update(['content' => $data['content'], 'edited_at' => now()]);
 
+        ProjectEvent::dispatch($projectId, 'comment:updated', ['taskId' => $taskId, 'commentId' => $comment->id]);
+
         return response()->ok(new CommentResource($comment->load('author')));
     }
 
@@ -85,6 +87,8 @@ class CommentController extends Controller
             'Not allowed',
         );
         $comment->delete();
+
+        ProjectEvent::dispatch($projectId, 'comment:deleted', ['taskId' => $taskId, 'commentId' => $id]);
 
         return response()->ok(null);
     }

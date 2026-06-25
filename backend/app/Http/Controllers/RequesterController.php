@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ProjectEvent;
 use App\Http\Resources\RequesterResource;
 use App\Models\Requester;
 use Illuminate\Http\JsonResponse;
@@ -29,6 +30,8 @@ class RequesterController extends Controller
             'color' => $data['color'],
         ]);
 
+        ProjectEvent::dispatch($projectId, 'requester:changed', ['requesterId' => $requester->id]);
+
         return response()->ok(new RequesterResource($requester), 201);
     }
 
@@ -45,12 +48,16 @@ class RequesterController extends Controller
             'color' => $data['color'] ?? null,
         ]))->save();
 
+        ProjectEvent::dispatch($projectId, 'requester:changed', ['requesterId' => $requester->id]);
+
         return response()->ok(new RequesterResource($requester));
     }
 
     public function destroy(string $projectId, string $id): JsonResponse
     {
         Requester::where('project_id', $projectId)->findOrFail($id)->delete();
+
+        ProjectEvent::dispatch($projectId, 'requester:changed', ['requesterId' => $id]);
 
         return response()->ok(null);
     }

@@ -121,4 +121,6 @@ export const reportsApi = {
     apiClient.get<{ success: true; data: HoursPoint[] }>(`/projects/${projectId}/reports/working-hours`, { params: filters }).then((r) => r.data.data),
   exportTasksXlsx: (projectId: string, params: { from?: string; to?: string; baseUrl?: string }) =>
     apiClient.get<Blob>(`/projects/${projectId}/export/tasks/xlsx`, { params, responseType: 'blob' }).then((r) => r.data),
+  exportDeveloperReportXlsx: (projectId: string, params: { from?: string; to?: string; userId?: string; priority?: string; baseUrl?: string }) =>
+    apiClient.get<Blob>(`/projects/${projectId}/export/developer-report/xlsx`, { params, responseType: 'blob' }).then((r) => r.data),
 }

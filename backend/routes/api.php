@@ -140,6 +140,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // ── Queued exports (Excel tasks / monthly PDF) ──
         Route::middleware('permission:view_reports')->group(function () {
             Route::get('export/tasks/xlsx', [ExportController::class, 'tasksXlsx']);
+            Route::get('export/developer-report/xlsx', [ExportController::class, 'developerReportXlsx']);
             Route::post('export/tasks/excel', [ExportController::class, 'tasksExcel']);
             Route::post('export/reports/monthly/pdf', [ExportController::class, 'monthlyReportPdf']);
             Route::get('export/files/{fileName}', [ExportController::class, 'download'])->where('fileName', '.*');

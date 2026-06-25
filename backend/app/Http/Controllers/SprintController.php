@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ProjectEvent;
 use App\Http\Resources\SprintResource;
 use App\Models\Sprint;
 use Illuminate\Http\JsonResponse;
@@ -38,6 +39,8 @@ class SprintController extends Controller
             'status' => 'planned',
         ]);
 
+        ProjectEvent::dispatch($projectId, 'sprint:changed', ['sprintId' => $sprint->id]);
+
         return response()->ok(new SprintResource($sprint), 201);
     }
 
@@ -60,6 +63,8 @@ class SprintController extends Controller
             'status' => $data['status'] ?? null,
         ], fn ($v) => $v !== null))->save();
 
+        ProjectEvent::dispatch($projectId, 'sprint:changed', ['sprintId' => $sprint->id]);
+
         return response()->ok(new SprintResource($sprint));
     }
 
@@ -78,6 +83,8 @@ class SprintController extends Controller
         $sprint = Sprint::where('project_id', $projectId)->findOrFail($id);
         $sprint->status = $status;
         $sprint->save();
+
+        ProjectEvent::dispatch($projectId, 'sprint:changed', ['sprintId' => $sprint->id]);
 
         return response()->ok(new SprintResource($sprint));
     }

@@ -30,7 +30,9 @@ export function CommentThread({ projectId, taskId }: Props) {
   const { mutate: addComment, isPending } = useMutation({
     mutationFn: () => commentsApi.create(projectId, taskId, {
       content: content.trim(),
-      parentId: replyTo?.id,
+      // Keep threads one level deep: a reply to a reply attaches to the same
+      // top-level comment, so it's always returned nested by the API.
+      parentId: replyTo ? (replyTo.parentId ?? replyTo.id) : undefined,
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['comments', projectId, taskId] })
@@ -56,8 +58,10 @@ export function CommentThread({ projectId, taskId }: Props) {
     onError: () => toast.error(t('board.commentDeleteFailed')),
   })
 
+  // The API returns only top-level comments, each with its replies nested under
+  // `replies` (see CommentResource). Consume that shape directly — do NOT try to
+  // rebuild it by filtering a flat list (the replies aren't top-level entries).
   const topLevel = comments.filter((c) => !c.parentId)
-  const getReplies = (id: string) => comments.filter((c) => c.parentId === id)
 
   if (isLoading) return (
     <div className="space-y-3">
@@ -80,7 +84,7 @@ export function CommentThread({ projectId, taskId }: Props) {
         <CommentItem
           key={comment.id}
           comment={comment}
-          replies={getReplies(comment.id)}
+          replies={comment.replies ?? []}
           currentUserId={user?.id}
           editing={editing}
           onReply={setReplyTo}

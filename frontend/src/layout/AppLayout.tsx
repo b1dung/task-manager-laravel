@@ -1,11 +1,13 @@
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
+import { RealtimeSync } from './RealtimeSync'
 import { ToastContainer } from '@/components/ui'
 
 export function AppLayout() {
   return (
     <div className="flex h-full overflow-hidden">
+      <RealtimeSync />
       <Sidebar />
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <Topbar />

@@ -6,6 +6,7 @@ use App\Jobs\ExportMonthlyReportPdf;
 use App\Jobs\ExportTasksExcel;
 use App\Models\Project;
 use App\Models\Task;
+use App\Services\ReportService;
 use App\Support\ExportStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,6 +26,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class ExportController extends Controller
 {
+    public function __construct(private readonly ReportService $reports) {}
+
     /** POST /projects/{projectId}/export/tasks/excel */
     public function tasksExcel(Request $request, string $projectId): JsonResponse
     {
@@ -58,7 +61,7 @@ class ExportController extends Controller
         // Timestamps are stored in UTC; render them in the site-wide timezone.
         $tz = \App\Models\AppSetting::get('timezone', config('app.timezone'));
 
-        $query = Task::with(['assignee', 'qaAssignee', 'requesters', 'labels', 'column', 'parent'])
+        $query = Task::with(['assignee', 'qaAssignee', 'reporter', 'requesters', 'labels', 'column', 'parent'])
             ->where('project_id', $projectId)
             ->whereNull('archived_at');
         if (! empty($data['from'])) {
@@ -71,10 +74,10 @@ class ExportController extends Controller
 
         $headers = [
             'Created', 'Updated', 'Link task', 'Task parent', 'Task type',
-            'Month', 'Status', 'Requester', 'Company', 'Assignee', 'QA Assignee', 'Title',
+            'Month', 'Status', 'Requester', 'Company', 'Reporter', 'Assignee', 'QA Assignee', 'Title',
             '請求工数', '実装内容', 'メモ', 'Note', 'Time tracking', 'QA time tracking', 'Total time',
         ];
-        $lastCol = 'S'; // 19 columns A..S
+        $lastCol = 'T'; // 20 columns A..T
 
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
@@ -101,6 +104,7 @@ class ExportController extends Controller
                 $t->column?->name ?? $t->status,
                 $t->requesters->pluck('name')->implode(', '),
                 $t->labels->pluck('name')->implode(', '),
+                $t->reporter?->full_name ?? $t->reporter?->email ?? '',
                 $t->assignee?->full_name ?? $t->assignee?->email ?? '',
                 $t->qaAssignee?->full_name ?? $t->qaAssignee?->email ?? '',
                 $t->title,
@@ -149,8 +153,8 @@ class ExportController extends Controller
         $sheet->getStyle("A1:{$lastCol}{$lastRow}")->getAlignment()
             ->setVertical(Alignment::VERTICAL_CENTER);
 
-        // Horizontally centre the time columns (Q=Time, R=QA time, S=Total).
-        $sheet->getStyle("Q1:S{$lastRow}")->getAlignment()
+        // Horizontally centre the time columns (R=Time, S=QA time, T=Total).
+        $sheet->getStyle("R1:T{$lastRow}")->getAlignment()
             ->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         // Auto-size every column to fit its content.
@@ -160,6 +164,144 @@ class ExportController extends Controller
         $sheet->freezePane('A2'); // keep header visible while scrolling
 
         $fileName = 'tasks-export-'.($data['from'] ?? 'all').'_'.($data['to'] ?? 'now').'-'.now()->format('Ymd-His').'.xlsx';
+
+        return response()->streamDownload(function () use ($spreadsheet) {
+            (new Xlsx($spreadsheet))->save('php://output');
+            $spreadsheet->disconnectWorksheets();
+        }, $fileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    /**
+     * GET /projects/{projectId}/export/developer-report/xlsx?from=&to=&userId=&priority=&baseUrl=
+     *
+     * Styled .xlsx of the Developer Report — richer than the old flat CSV: a KPI
+     * summary band, the developer leaderboard, and the per-task detail table with
+     * clickable task links. Green header, zebra rows, thin borders, Calibri font.
+     */
+    public function developerReportXlsx(Request $request, string $projectId): StreamedResponse
+    {
+        $request->validate([
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date'],
+            'userId' => ['nullable', 'uuid'],
+            'priority' => ['nullable', 'string'],
+            'baseUrl' => ['nullable', 'string'],
+        ]);
+
+        $project = Project::findOrFail($projectId);
+        $key = $this->projectKey($project->name);
+        $base = rtrim($request->query('baseUrl') ?? (string) config('app.frontend_url'), '/');
+        $report = $this->reports->developer($projectId, $request);
+
+        $green = '63D297';
+        $dark = '1F2937';
+        $zebra = 'E7F9EF';
+
+        $spreadsheet = new Spreadsheet;
+        $spreadsheet->getDefaultStyle()->getFont()->setName('Calibri')->setSize(11);
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Developer Report');
+
+        // ── Title band ─────────────────────────────────────────────────────────
+        $sheet->setCellValue('A1', $project->name.' — Developer Report');
+        $sheet->mergeCells('A1:I1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16)->getColor()->setRGB($dark);
+        $sheet->getRowDimension(1)->setRowHeight(26);
+
+        $from = $request->query('from') ?? '—';
+        $to = $request->query('to') ?? '—';
+        $sheet->setCellValue('A2', "Period: {$from} → {$to}    •    Generated: ".now()->format('Y-m-d H:i'));
+        $sheet->mergeCells('A2:I2');
+        $sheet->getStyle('A2')->getFont()->setSize(10)->getColor()->setRGB('6B7280');
+
+        $row = 4;
+        $section = function (string $title) use ($sheet, &$row, $dark): void {
+            $sheet->setCellValue("A{$row}", $title);
+            $sheet->mergeCells("A{$row}:I{$row}");
+            $sheet->getStyle("A{$row}")->getFont()->setBold(true)->setSize(13)->getColor()->setRGB($dark);
+            $row++;
+        };
+        $headerRow = function (array $cols, int $r) use ($sheet, $green): string {
+            $last = chr(ord('A') + count($cols) - 1);
+            $sheet->fromArray($cols, null, "A{$r}");
+            $sheet->getStyle("A{$r}:{$last}{$r}")->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+            $sheet->getStyle("A{$r}:{$last}{$r}")->getFill()
+                ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($green);
+
+            return $last;
+        };
+
+        // ── KPI summary ────────────────────────────────────────────────────────
+        $section('Summary');
+        $k = $report['kpis'];
+        $kLast = $headerRow(['Total Tasks', 'Completed', 'Completion Rate', 'Logged Hours', 'Overdue', 'Avg Completion', 'Productivity'], $row);
+        $row++;
+        $sheet->fromArray([
+            $k['totalTasks'], $k['completedTasks'], $k['completionRate'].'%',
+            $this->formatDuration((float) $k['loggedHours']) ?: '0h', $k['overdueTasks'],
+            $k['avgCompletionTime'].'d', $k['productivityScore'].'%',
+        ], null, "A{$row}");
+        $sheet->getStyle("A".($row - 1).":{$kLast}{$row}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $row += 2;
+
+        // ── Developer leaderboard ───────────────────────────────────────────────
+        $section('Developer Summary');
+        $devHeaderAt = $row;
+        $dLast = $headerRow(['Developer', 'Assigned', 'Completed', 'Completion Rate', 'Logged Hours', 'Avg Duration', 'Overdue', 'Productivity', 'Grade'], $row);
+        $row++;
+        foreach ($report['developers'] as $i => $d) {
+            $sheet->fromArray([
+                $d['fullName'], $d['assigned'], $d['completed'], $d['completionRate'].'%',
+                $this->formatDuration((float) $d['loggedHours']) ?: '0h', $d['avgDuration'].'d',
+                $d['overdue'], $d['productivityScore'].'%', ucfirst((string) $d['grade']),
+            ], null, "A{$row}");
+            $sheet->getStyle("A{$row}:{$dLast}{$row}")->getFill()
+                ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($i % 2 === 0 ? $zebra : 'FFFFFF');
+            $row++;
+        }
+        if ($row - 1 >= $devHeaderAt) {
+            $sheet->getStyle("A{$devHeaderAt}:{$dLast}".($row - 1))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        }
+        $row += 1;
+
+        // ── Task details ────────────────────────────────────────────────────────
+        $section('Task Details');
+        $tHeaderAt = $row;
+        $tLast = $headerRow(['Task', 'Title', 'Priority', 'Status', 'Estimated', 'Logged', 'Due', 'Completed', 'Late'], $row);
+        $row++;
+        foreach ($report['taskDetails'] as $i => $t) {
+            $label = $t['taskNumber'] !== null ? $key.'-'.$t['taskNumber'] : '';
+            $late = ($t['overdue'] || $t['lateDays'] > 0) ? 'Late '.$t['lateDays'].'d' : 'On time';
+            $sheet->fromArray([
+                $label, $t['title'], ucfirst((string) $t['priority']),
+                $t['columnName'] ?? $t['status'],
+                $this->formatDuration((float) ($t['estimatedHours'] ?? 0)),
+                $this->formatDuration((float) ($t['loggedHours'] ?? 0)),
+                $t['dueDate'] ?? '', $t['completedDate'] ?? '', $late,
+            ], null, "A{$row}");
+            if ($label !== '') {
+                $sheet->getCell("A{$row}")->getHyperlink()->setUrl($base.'/projects/'.$projectId.'/tasks?selectedIssue='.$t['id']);
+                $sheet->getStyle("A{$row}")->getFont()->setUnderline(true)->getColor()->setRGB('0B5FFF');
+            }
+            $sheet->getStyle("B{$row}:{$tLast}{$row}")->getFill()
+                ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($i % 2 === 0 ? $zebra : 'FFFFFF');
+            $row++;
+        }
+        if ($row - 1 >= $tHeaderAt) {
+            $sheet->getStyle("A{$tHeaderAt}:{$tLast}".($row - 1))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        }
+
+        // ── Finishing touches ───────────────────────────────────────────────────
+        $sheet->getStyle('A1:I'.($row - 1))->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+        foreach (range('A', 'I') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+        $sheet->getColumnDimension('B')->setAutoSize(false)->setWidth(46); // Title can be long
+
+        $fileName = 'developer-report-'.($request->query('from') ?? 'all').'_'.($request->query('to') ?? 'now').'-'.now()->format('Ymd-His').'.xlsx';
 
         return response()->streamDownload(function () use ($spreadsheet) {
             (new Xlsx($spreadsheet))->save('php://output');

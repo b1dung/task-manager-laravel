@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ProjectEvent;
 use App\Http\Resources\AttachmentResource;
 use App\Http\Resources\ProjectAttachmentResource;
 use App\Models\Attachment;
@@ -43,6 +44,8 @@ class AttachmentController extends Controller
             'mime_type' => $file->getMimeType(),
         ]);
 
+        ProjectEvent::dispatch($projectId, 'attachment:changed', ['taskId' => $taskId, 'attachmentId' => $attachment->id]);
+
         return response()->ok(new AttachmentResource($attachment), 201);
     }
 
@@ -53,6 +56,8 @@ class AttachmentController extends Controller
 
         Storage::disk(self::DISK)->delete(self::DIR.'/'.basename($attachment->file_url));
         $attachment->delete();
+
+        ProjectEvent::dispatch($projectId, 'attachment:changed', ['taskId' => $taskId, 'attachmentId' => $id]);
 
         return response()->ok(null);
     }

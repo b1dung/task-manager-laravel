@@ -16,7 +16,7 @@ export interface Comment {
 export const commentsApi = {
   list: (projectId: string, taskId: string) =>
     apiClient.get<{ success: true; data: Comment[] }>(`/projects/${projectId}/tasks/${taskId}/comments`).then((r) => r.data.data),
-  create: (projectId: string, taskId: string, dto: { content: string; parentId?: string }) =>
+  create: (projectId: string, taskId: string, dto: { content: string; parentId?: string; mentionedUserIds?: string[] }) =>
     apiClient.post<{ success: true; data: Comment }>(`/projects/${projectId}/tasks/${taskId}/comments`, dto).then((r) => r.data.data),
   update: (projectId: string, taskId: string, id: string, content: string) =>
     apiClient.patch<{ success: true; data: Comment }>(`/projects/${projectId}/tasks/${taskId}/comments/${id}`, { content }).then((r) => r.data.data),

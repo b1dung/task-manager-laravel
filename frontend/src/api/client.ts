@@ -14,45 +14,43 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
-let isRefreshing = false
-let queue: Array<(token: string) => void> = []
+// Single-flight refresh: a burst of concurrent 401s (e.g. every project query
+// refetching at once after a realtime `task:updated` invalidation) must trigger
+// exactly ONE /auth/refresh. The refresh token cookie rotates and is single-use,
+// so a second concurrent refresh would present an already-consumed token and fail,
+// logging the user out and breaking otherwise-successful requests. All callers
+// await the same in-flight promise instead.
+let refreshPromise: Promise<string> | null = null
+
+function refreshAccessToken(): Promise<string> {
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post(`${import.meta.env.VITE_API_URL ?? '/api/v1'}/auth/refresh`, {}, { withCredentials: true })
+      .then((res) => {
+        const { accessToken } = res.data.data as { accessToken: string }
+        useAuthStore.getState().setTokens(accessToken, '')
+        return accessToken
+      })
+      .finally(() => { refreshPromise = null })
+  }
+  return refreshPromise
+}
 
 apiClient.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config
-    if (error.response?.status !== 401 || original._retry) {
+    if (error.response?.status !== 401 || !original || original._retry) {
       return Promise.reject(error)
     }
     original._retry = true
-
-    if (isRefreshing) {
-      return new Promise((resolve) => {
-        queue.push((token) => {
-          original.headers.Authorization = `Bearer ${token}`
-          resolve(apiClient(original))
-        })
-      })
-    }
-
-    isRefreshing = true
     try {
-      const { data } = await axios.post(
-        `${import.meta.env.VITE_API_URL ?? '/api/v1'}/auth/refresh`,
-        {},
-        { withCredentials: true },
-      )
-      const { accessToken } = data.data as { accessToken: string }
-      useAuthStore.getState().setTokens(accessToken, '')
-      queue.forEach((cb) => cb(accessToken))
-      queue = []
-      original.headers.Authorization = `Bearer ${accessToken}`
+      const token = await refreshAccessToken()
+      original.headers.Authorization = `Bearer ${token}`
       return apiClient(original)
     } catch {
       useAuthStore.getState().logout()
       return Promise.reject(error)
-    } finally {
-      isRefreshing = false
     }
   },
 )

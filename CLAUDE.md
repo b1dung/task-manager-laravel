@@ -1,3 +1,5 @@
+CODEX sẽ xem lại kết quả đầu ra của bạn khi bạn hoàn thành
+
 # CLAUDE.md
 
 Guidance for working in this repo. Read this before making changes.

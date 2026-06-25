@@ -250,7 +250,16 @@ class TaskController extends Controller
         $task->save();
 
         WorkingHour::create(['task_id' => $task->id, 'user_id' => $request->user()->id, 'hours' => $data['hours'], 'is_qa' => $isQa, 'logged_date' => $data['loggedDate'] ?? now()->toDateString(), 'note' => $data['description'] ?? null]);
-        $this->activity->record($request, $projectId, 'updated', 'task', $task->id, null, [($isQa ? 'qaLoggedHours' : 'loggedHours') => (float) $task->{$column}]);
+        // Record the amount just logged (not the running total) + whether it's QA, so the
+        // history can show "logged 2h" instead of a bare "updated". The `action` column is
+        // a fixed enum, so we stay on 'updated' and let the FE recognise a time-log entry
+        // by these newValues keys (hours/isQa).
+        $this->activity->record($request, $projectId, 'updated', 'task', $task->id, null, [
+            'hours' => (float) $data['hours'],
+            'isQa' => $isQa,
+            'note' => $data['description'] ?? null,
+            ($isQa ? 'qaLoggedHours' : 'loggedHours') => (float) $task->{$column},
+        ]);
         $this->notifications->taskEvent($projectId, $request->user()->id, 'time_logged', 'task', $task->id, ($isQa ? 'logged QA time on "' : 'logged time on "').$task->title.'"', [$task->assignee_id, $task->qa_assignee_id, $task->reporter_id]);
         ProjectEvent::dispatch($projectId, 'task:updated', ['task' => (new TaskResource($task->fresh(self::EAGER)))->resolve()]);
 

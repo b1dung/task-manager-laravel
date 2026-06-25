@@ -22,7 +22,7 @@ import { SecureImage } from './SecureImage'
 import TiptapLink from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import Highlight from '@tiptap/extension-highlight'
-import { tasksApi, type Task, type UpdateTaskDto } from '@/api/tasks'
+import { tasksApi, type Task, type UpdateTaskDto, type TaskUser } from '@/api/tasks'
 import { commentsApi, type Comment } from '@/api/comments'
 import { membersApi } from '@/api/members'
 import { labelsApi } from '@/api/labels'
@@ -301,12 +301,6 @@ export function TaskDetailModal({ task, taskId, projectId, projectKey = 'TASK', 
               >
                 <Plus className="w-3 h-3" /> Child
               </button>
-              <button
-                title="More options"
-                className="flex items-center gap-1 px-2 h-[27px] rounded-md text-xs text-fg-muted border border-border hover:border-accent/50 hover:text-fg transition-colors"
-              >
-                <MoreHorizontal className="w-3 h-3" />
-              </button>
             </div>
 
             {/* Description */}
@@ -424,10 +418,6 @@ function DetailHeader({ displayId, parentTask, projectKey = 'TASK', onClose, onO
           </>
         ) : (
           <>
-            <button className="hover:text-accent transition-colors flex items-center gap-1 shrink-0">
-              <Plus className="w-3 h-3" /> Add epic
-            </button>
-            <span className="shrink-0">/</span>
           </>
         )}
         <button
@@ -1288,7 +1278,7 @@ function AllTab({ projectId, taskId }: { projectId: string; taskId: string }) {
     <div className="space-y-3">
       {items.map((item) => item.type === 'comment'
         ? <CommentBubble key={`c-${item.data.id}`} comment={item.data as Comment} mini />
-        : <HistoryItem key={`a-${item.data.id}`} log={item.data as ActivityLog} />
+        : <HistoryItem key={`a-${item.data.id}`} log={item.data as ActivityLog} projectId={projectId} />
       )}
     </div>
   )
@@ -1304,14 +1294,26 @@ function CommentsTab({ projectId, taskId }: { projectId: string; taskId: string 
   const [content, setContent] = useState('')
   const [replyTo, setReplyTo] = useState<Comment | null>(null)
   const [editing, setEditing] = useState<{ id: string; content: string } | null>(null)
+  // Users picked from the @-mention dropdown; on submit we send the ids of those
+  // still present in the text so the backend can notify them.
+  const [mentions, setMentions] = useState<TaskUser[]>([])
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null)
+  const [mentionStart, setMentionStart] = useState(0)
+  const [mentionIdx, setMentionIdx] = useState(0)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const { data: comments = [], isLoading } = useQuery({
     queryKey: ['comments', projectId, taskId],
     queryFn: () => commentsApi.list(projectId, taskId),
   })
 
+  const { data: members = [] } = useQuery({
+    queryKey: ['members', projectId],
+    queryFn: () => membersApi.list(projectId),
+  })
+
   const { mutate: addComment, isPending } = useMutation({
-    mutationFn: (dto: { content: string; parentId?: string }) =>
+    mutationFn: (dto: { content: string; parentId?: string; mentionedUserIds?: string[] }) =>
       commentsApi.create(projectId, taskId, dto),
     onMutate: async ({ content: c, parentId }) => {
       const optimistic: Comment = {
@@ -1319,10 +1321,16 @@ function CommentsTab({ projectId, taskId }: { projectId: string; taskId: string 
         taskId, authorId: user!.id,
         author: { id: user!.id, fullName: user!.fullName, email: '', avatarUrl: user!.avatarUrl ?? null },
         content: c, parentId: parentId ?? null,
-        editedAt: null, createdAt: new Date().toISOString(),
+        editedAt: null, createdAt: new Date().toISOString(), replies: [],
       }
-      qc.setQueryData(['comments', projectId, taskId], (old: Comment[]) => [...(old ?? []), optimistic])
-      setContent(''); setReplyTo(null)
+      // Match the API shape: a reply nests under its top-level parent's `replies`,
+      // a top-level comment appends to the list.
+      qc.setQueryData(['comments', projectId, taskId], (old: Comment[] = []) =>
+        parentId
+          ? old.map(top => top.id === parentId ? { ...top, replies: [...(top.replies ?? []), optimistic] } : top)
+          : [...old, optimistic],
+      )
+      setContent(''); setReplyTo(null); setMentions([]); setMentionQuery(null)
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['comments', projectId, taskId] }),
     onError: () => { toast.error(tr('taskDetail.sendFailed')); qc.invalidateQueries({ queryKey: ['comments', projectId, taskId] }) },
@@ -1338,8 +1346,57 @@ function CommentsTab({ projectId, taskId }: { projectId: string; taskId: string 
     onSuccess: () => qc.invalidateQueries({ queryKey: ['comments', projectId, taskId] }),
   })
 
+  // The API returns only top-level comments with their replies nested under
+  // `replies` (see CommentResource). Consume that shape directly — do NOT rebuild
+  // it by filtering a flat list (replies aren't top-level entries).
   const topLevel = comments.filter(c => !c.parentId)
-  const getReplies = (id: string) => comments.filter(c => c.parentId === id)
+  // Keep threads one level deep: a reply to a reply attaches to the same
+  // top-level comment, so the API always returns it nested (index only eager-loads
+  // one level of `replies`).
+  const effectiveParentId = replyTo ? (replyTo.parentId ?? replyTo.id) : undefined
+  const memberUsers = members.map(m => m.user)
+
+  const submit = () => {
+    if (!content.trim()) return
+    // Only notify mentions whose `@FullName` is still in the text.
+    const mentionedUserIds = [...new Set(
+      mentions.filter(u => content.includes('@' + u.fullName)).map(u => u.id),
+    )]
+    addComment({ content: content.trim(), parentId: effectiveParentId, mentionedUserIds })
+  }
+
+  // Candidates for the @-mention dropdown: project members matching the typed query.
+  const mentionCandidates = mentionQuery === null ? [] : memberUsers
+    .filter(u => u.fullName.toLowerCase().includes(mentionQuery.toLowerCase()))
+    .slice(0, 6)
+
+  // Detect a `@token` being typed at the caret (token = run of non-space chars).
+  const onContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value
+    setContent(val)
+    const before = val.slice(0, e.target.selectionStart)
+    const m = /(?:^|\s)@(\S*)$/.exec(before)
+    if (m) {
+      setMentionQuery(m[1])
+      setMentionStart(before.length - m[1].length - 1) // index of the '@'
+      setMentionIdx(0)
+    } else {
+      setMentionQuery(null)
+    }
+  }
+
+  const pickMention = (u: TaskUser) => {
+    const tail = content.slice(mentionStart + 1 + (mentionQuery?.length ?? 0))
+    const next = content.slice(0, mentionStart) + '@' + u.fullName + ' ' + tail
+    setContent(next)
+    setMentions(prev => prev.some(p => p.id === u.id) ? prev : [...prev, u])
+    setMentionQuery(null)
+    const caret = mentionStart + u.fullName.length + 2
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus()
+      textareaRef.current?.setSelectionRange(caret, caret)
+    })
+  }
 
   if (isLoading) return <TimelineSkeleton />
 
@@ -1354,13 +1411,14 @@ function CommentsTab({ projectId, taskId }: { projectId: string; taskId: string 
         <CommentBubble
           key={c.id}
           comment={c}
-          replies={getReplies(c.id)}
+          replies={c.replies ?? []}
           currentUserId={user?.id}
           editing={editing}
           onReply={setReplyTo}
           onEdit={setEditing}
           onUpdate={(id, content) => updateComment({ id, content })}
           onDelete={deleteComment}
+          memberNames={memberUsers.map(u => u.fullName)}
         />
       ))}
 
@@ -1389,22 +1447,51 @@ function CommentsTab({ projectId, taskId }: { projectId: string; taskId: string 
         <div className="flex gap-2">
           {user && <Avatar name={user.fullName} avatarUrl={user.avatarUrl} size="sm" className="shrink-0 mt-1" />}
           <div className="flex-1 space-y-1.5">
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              onKeyDown={(e) => {
-                if ((e.shiftKey || e.ctrlKey || e.metaKey) && e.key === 'Enter' && content.trim()) {
-                  e.preventDefault()
-                  addComment({ content: content.trim(), parentId: replyTo?.id })
-                }
-              }}
-              placeholder="Add a comment... (Shift+Enter to send)"
-              rows={4}
-              className="w-full bg-bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-fg resize-none focus:outline-none focus:ring-2 focus:ring-accent placeholder:text-fg-subtle"
-            />
+            <div className="relative">
+              <textarea
+                ref={textareaRef}
+                value={content}
+                onChange={onContentChange}
+                onKeyDown={(e) => {
+                  // While the @-mention dropdown is open, arrows/enter/tab/esc drive it.
+                  if (mentionQuery !== null && mentionCandidates.length > 0) {
+                    if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIdx(i => (i + 1) % mentionCandidates.length); return }
+                    if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIdx(i => (i - 1 + mentionCandidates.length) % mentionCandidates.length); return }
+                    if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); pickMention(mentionCandidates[mentionIdx]); return }
+                    if (e.key === 'Escape') { e.preventDefault(); setMentionQuery(null); return }
+                  }
+                  if ((e.shiftKey || e.ctrlKey || e.metaKey) && e.key === 'Enter' && content.trim()) {
+                    e.preventDefault()
+                    submit()
+                  }
+                }}
+                placeholder="Add a comment... (@ to mention, Shift+Enter to send)"
+                rows={4}
+                className="w-full bg-bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-fg resize-none focus:outline-none focus:ring-2 focus:ring-accent placeholder:text-fg-subtle"
+              />
+              {mentionQuery !== null && mentionCandidates.length > 0 && (
+                <div className="absolute left-0 bottom-full mb-1 z-10 w-64 max-h-56 overflow-y-auto scrollbar-thin bg-bg-elevated border border-border rounded-lg shadow-lg py-1">
+                  {mentionCandidates.map((u, i) => (
+                    <button
+                      key={u.id}
+                      type="button"
+                      onMouseDown={(e) => { e.preventDefault(); pickMention(u) }}
+                      onMouseEnter={() => setMentionIdx(i)}
+                      className={cn(
+                        'w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-sm',
+                        i === mentionIdx ? 'bg-bg-subtle text-fg' : 'text-fg-muted',
+                      )}
+                    >
+                      <Avatar name={u.fullName} avatarUrl={u.avatarUrl} size="sm" className="shrink-0" />
+                      <span className="truncate">{u.fullName}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-fg-subtle">Press M to comment</span>
-              <Button variant="primary" size="sm" disabled={!content.trim()} loading={isPending} onClick={() => addComment({ content: content.trim(), parentId: replyTo?.id })}>
+              <Button variant="primary" size="sm" disabled={!content.trim()} loading={isPending} onClick={submit}>
                 Save
               </Button>
             </div>
@@ -1417,14 +1504,34 @@ function CommentsTab({ projectId, taskId }: { projectId: string; taskId: string 
 
 // ─── Comment Bubble ───────────────────────────────────────────────────────────
 
+// Highlights `@FullName` runs that match a known project member. Longest names
+// first so "@Bui Manh Dung" wins over a member also named "@Bui".
+function MentionText({ text, names }: { text: string; names?: string[] }) {
+  if (!names || names.length === 0) return <>{text}</>
+  const escaped = [...names]
+    .sort((a, b) => b.length - a.length)
+    .map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  const re = new RegExp('@(' + escaped.join('|') + ')', 'g')
+  const parts: React.ReactNode[] = []
+  let last = 0
+  let m: RegExpExecArray | null
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index))
+    parts.push(<span key={m.index} className="text-accent font-medium">{m[0]}</span>)
+    last = m.index + m[0].length
+  }
+  if (last < text.length) parts.push(text.slice(last))
+  return <>{parts}</>
+}
+
 function CommentBubble({
-  comment, replies, currentUserId, editing, onReply, onEdit, onUpdate, onDelete, mini
+  comment, replies, currentUserId, editing, onReply, onEdit, onUpdate, onDelete, mini, memberNames
 }: {
   comment: Comment; replies?: Comment[]; currentUserId?: string
   editing?: { id: string; content: string } | null
   onReply?: (c: Comment) => void; onEdit?: (e: { id: string; content: string } | null) => void
   onUpdate?: (id: string, content: string) => void; onDelete?: (id: string) => void
-  mini?: boolean
+  mini?: boolean; memberNames?: string[]
 }) {
   const isOwn = comment.authorId === currentUserId
   const isEditing = editing?.id === comment.id
@@ -1453,7 +1560,9 @@ function CommentBubble({
             </div>
           </div>
         ) : (
-          <p className="text-sm text-fg whitespace-pre-wrap break-words">{comment.content}</p>
+          <p className="text-sm text-fg whitespace-pre-wrap break-words">
+            <MentionText text={comment.content} names={memberNames} />
+          </p>
         )}
 
         {!mini && (
@@ -1481,7 +1590,8 @@ function CommentBubble({
             {replies.map(r => (
               <CommentBubble
                 key={r.id} comment={r} currentUserId={currentUserId}
-                editing={editing} onEdit={onEdit} onUpdate={onUpdate} onDelete={onDelete}
+                editing={editing} onReply={onReply} onEdit={onEdit} onUpdate={onUpdate} onDelete={onDelete}
+                memberNames={memberNames}
               />
             ))}
           </div>
@@ -1515,35 +1625,106 @@ function HistoryTab({ projectId, taskId }: { projectId: string; taskId: string }
 
   return (
     <div className="space-y-2">
-      {logs.map(log => <HistoryItem key={log.id} log={log} />)}
+      {logs.map(log => <HistoryItem key={log.id} log={log} projectId={projectId} />)}
     </div>
   )
 }
 
-function HistoryItem({ log }: { log: ActivityLog }) {
+// Readable labels for the snapshot keys the backend records (see TaskController::snapshot).
+// `status` (enum) is omitted on purpose — the board column is the source of truth, so
+// we surface `columnId` as "Status" with the column's own name.
+const HISTORY_FIELDS: Record<string, string> = {
+  title: 'Title',
+  columnId: 'Status',
+  assigneeId: 'Assignee',
+  priority: 'Priority',
+  dueDate: 'Due date',
+}
+
+function HistoryItem({ log, projectId }: { log: ActivityLog; projectId: string }) {
   const timezone = useSiteTimezone()
+  const { data: members = [] } = useQuery({
+    queryKey: ['members', projectId],
+    queryFn: () => membersApi.list(projectId),
+  })
+  const { data: columns = [] } = useQuery({
+    queryKey: ['columns', projectId],
+    queryFn: () => columnsApi.list(projectId),
+  })
+
   const actionLabel: Record<string, string> = {
     created: 'created this task',
-    updated: 'updated',
+    updated: 'updated this task',
     status_changed: 'changed status',
     moved: 'moved task',
-    assigned: 'assigned',
+    assigned: 'changed assignee',
     commented: 'commented',
     deleted: 'deleted',
   }
 
+  // Resolve recorded IDs to human-readable text.
+  const formatValue = (key: string, value: unknown): string => {
+    if (value === null || value === undefined || value === '') {
+      return key === 'assigneeId' ? 'Unassigned' : 'None'
+    }
+    if (key === 'assigneeId') return members.find(m => m.userId === value)?.user.fullName ?? 'Unknown user'
+    if (key === 'columnId') return columns.find(c => c.id === value)?.name ?? String(value)
+    return String(value)
+  }
+
+  // The backend stores a full snapshot on every change, so diff old vs new and
+  // surface only the fields that actually changed — one line each, "from → to".
+  const old = log.oldValues
+  const changes = old
+    ? Object.keys(HISTORY_FIELDS)
+        .filter(k => (old[k] ?? null) !== (log.newValues?.[k] ?? null))
+        .map(k => ({ label: HISTORY_FIELDS[k], from: formatValue(k, old[k]), to: formatValue(k, log.newValues?.[k]) }))
+    : []
+
+  // Log-time entries are stored as action 'updated' (the action column is a fixed
+  // enum) and recognised by their newValues keys. Show "logged 2h" (+ "(QA)") instead
+  // of a bare "updated". New records carry the increment in `hours` + an `isQa` flag;
+  // older ones only the running (qa)loggedHours total.
+  const nv = log.newValues ?? {}
+  const isLogTime = !old && ('hours' in nv || 'loggedHours' in nv || 'qaLoggedHours' in nv)
+  let actionText = actionLabel[log.action] ?? log.action
+  if (isLogTime) {
+    const isQaLog = 'isQa' in nv ? nv.isQa === true : 'qaLoggedHours' in nv
+    const amount = 'hours' in nv ? Number(nv.hours) : Number(nv.qaLoggedHours ?? nv.loggedHours)
+    const suffix = 'hours' in nv ? '' : ' total'
+    actionText = `logged ${formatTimeHours(amount || 0)}${suffix}${isQaLog ? ' (QA)' : ''}`
+  }
+  const note = typeof nv.note === 'string' && nv.note.trim() ? nv.note.trim() : null
+
   return (
-    <div className="flex gap-2.5 text-xs text-fg-muted">
-      <div className="w-1.5 h-1.5 rounded-full bg-border mt-1.5 shrink-0" />
-      <div className="flex-1">
-        <span className="font-medium text-fg">{log.user?.fullName ?? 'System'}</span>
-        {' '}{actionLabel[log.action] ?? log.action}
-        {log.newValues && Object.keys(log.newValues).length > 0 && (
-          <span className="text-fg-subtle"> · {Object.entries(log.newValues).map(([k, v]) => `${k}: ${v}`).join(', ')}</span>
+    <div className="flex items-center gap-2.5 text-xs">
+      <Avatar
+        name={log.user?.fullName ?? 'System'}
+        avatarUrl={log.user?.avatarUrl ?? null}
+        size="sm"
+        className="shrink-0 mt-0.5"
+      />
+      <div className="flex-1 min-w-0">
+        <div className="text-fg-muted">
+          <span className="font-medium text-fg">{log.user?.fullName ?? 'System'}</span>
+          {' '}{actionText}
+          <span className="ml-2 text-fg-subtle" title={formatRelative(log.createdAt, timezone)}>
+            {formatZonedDateTime(log.createdAt, timezone)}
+          </span>
+        </div>
+        {note && <p className="mt-0.5 text-fg-subtle italic whitespace-pre-wrap break-words">“{note}”</p>}
+        {changes.length > 0 && (
+          <ul className="mt-1 space-y-0.5">
+            {changes.map(c => (
+              <li key={c.label} className="text-fg-subtle">
+                <span className="text-fg-muted">{c.label}:</span>{' '}
+                <span className="line-through opacity-60">{c.from}</span>
+                <span className="mx-1 text-fg-subtle">→</span>
+                <span className="text-fg">{c.to}</span>
+              </li>
+            ))}
+          </ul>
         )}
-        <span className="ml-2 text-fg-subtle" title={formatRelative(log.createdAt, timezone)}>
-          {formatZonedDateTime(log.createdAt, timezone)}
-        </span>
       </div>
     </div>
   )
@@ -2222,33 +2403,39 @@ function TimeTrackingField({ task, projectId, variant = 'dev' }: { task: Task; p
     : `${formatTimeHours(logged)} logged`
 
   const { mutate: doLogTime, isPending } = useMutation({
-    mutationFn: async (h: number) => {
-      const updated = await tasksApi.logTime(projectId, task.id, {
+    // The ONLY request whose failure means "could not log time" is this one.
+    mutationFn: (h: number) =>
+      tasksApi.logTime(projectId, task.id, {
         hours: h,
         loggedDate: date,
         description: description.trim() || undefined,
         isQa,
-      })
-      const setEstimate = (val: number) =>
-        tasksApi.update(projectId, task.id, isQa ? { qaEstimatedHours: val } : { estimatedHours: val })
-      // Update (qa_)estimated_hours based on remaining mode
-      if (remainingMode === 'auto' && estimated > 0) {
-        const newEstimated = Math.max(logged + h, estimated - h)
-        if (newEstimated !== estimated) {
-          await setEstimate(newEstimated)
-        }
-      } else if (remainingMode === 'manual') {
-        const remaining = parseTimeInput(manualRemaining)
-        await setEstimate(logged + h + remaining)
-      }
-      return updated
-    },
-    onSuccess: (updated) => {
-      qc.setQueryData(['task', projectId, task.id], updated)
+      }),
+    onSuccess: async (loggedTask, h) => {
+      // Reflect the logged time immediately. This runs BEFORE the remaining-estimate
+      // adjustment so success never depends on a second request — under the realtime
+      // `task:updated` invalidation burst that second request can be slow or fail and
+      // previously surfaced as a false "could not log time" with a stale UI.
+      qc.setQueryData(['task', projectId, task.id], loggedTask)
       qc.invalidateQueries({ queryKey: ['tasks', projectId] })
       toast.success('Time logged successfully')
       setTimeInput(''); setDescription(''); setManualRemaining('')
       setShowModal(false)
+
+      // Best-effort: adjust the remaining estimate. A failure here is non-fatal — the
+      // time is already logged — so it must not toast an error or block the UI.
+      try {
+        const setEstimate = (val: number) =>
+          tasksApi.update(projectId, task.id, isQa ? { qaEstimatedHours: val } : { estimatedHours: val })
+        let updated: Task | undefined
+        if (remainingMode === 'auto' && estimated > 0) {
+          const newEstimated = Math.max(logged + h, estimated - h)
+          if (newEstimated !== estimated) updated = await setEstimate(newEstimated)
+        } else if (remainingMode === 'manual') {
+          updated = await setEstimate(logged + h + (parseTimeInput(manualRemaining) || 0))
+        }
+        if (updated) qc.setQueryData(['task', projectId, task.id], updated)
+      } catch { /* remaining estimate unchanged; the time was logged */ }
     },
     onError: () => toast.error(tr('taskDetail.logTimeFailed')),
   })

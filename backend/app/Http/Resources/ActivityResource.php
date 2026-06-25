@@ -13,6 +13,7 @@ class ActivityResource extends JsonResource
             'id' => $this->id,
             'projectId' => $this->project_id,
             'userId' => $this->user_id,
+            'user' => $this->whenLoaded('user', fn () => $this->user ? new TaskUserResource($this->user) : null),
             'action' => $this->action,
             'entityType' => $this->entity_type,
             'entityId' => $this->entity_id,

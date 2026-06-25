@@ -17,7 +17,7 @@ class ActivityController extends Controller
         $limit = min(200, max(1, (int) $request->query('limit', 50)));
         $query = $this->query($request, $projectId);
         $total = (clone $query)->count();
-        $items = $query->orderByDesc('created_at')->forPage($page, $limit)->get();
+        $items = $query->with('user')->orderByDesc('created_at')->forPage($page, $limit)->get();
 
         return response()->paginated(ActivityResource::collection($items), $page, $limit, $total);
     }
@@ -44,6 +44,11 @@ class ActivityController extends Controller
         $query = ActivityLog::where('project_id', $projectId);
         if ($request->filled('userId')) {
             $query->where('user_id', $request->query('userId'));
+        }
+        // History tab passes entityId to scope to a single task — without this the
+        // query returned every task's activity for the whole project.
+        if ($request->filled('entityId')) {
+            $query->where('entity_id', $request->query('entityId'));
         }
         foreach (['action' => 'action', 'entityType' => 'entity_type'] as $param => $column) {
             $values = $this->toArray($request->query($param));

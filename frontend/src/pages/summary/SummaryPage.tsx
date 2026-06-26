@@ -178,7 +178,7 @@ function StatusOverview({ data, loading }: { data?: ProjectSummary; loading: boo
       ) : slices.length === 0 ? (
         <EmptyState title={t('myTasks.emptyTitle')} />
       ) : (
-        <div className="flex items-center gap-4">
+        <div className="flex items-center min-h-[450px] justify-center gap-4">
           <div className="relative shrink-0" style={{ width: 300, height: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -198,12 +198,12 @@ function StatusOverview({ data, loading }: { data?: ProjectSummary; loading: boo
               <span className="text-[14px] text-fg-subtle">{t('summary.totalWorkItems')}</span>
             </div>
           </div>
-          <div className="flex-1 min-w-0 max-h-52 overflow-y-auto scrollbar-thin space-y-2.5 pr-1">
+          <div className="min-w-0 overflow-y-auto scrollbar-thin space-y-2.5 pr-1">
             {slices.map((s) => (
               <button key={s.name} onClick={() => goToColumn(s.columnId)}
                 className="flex w-full items-center gap-2.5 text-xs rounded-md px-1.5 py-1 -mx-1.5 hover:bg-bg-subtle transition-colors text-left">
                 <span className="w-3 h-3 shrink-0" style={{ backgroundColor: s.color }} />
-                <span className="flex-1 truncate text-fg-muted text-[16px] hover:text-accent transition-colors">{s.name}:</span>
+                <span className="flex truncate text-fg-muted text-[16px] hover:text-accent transition-colors">{s.name}:</span>
                 <span className="font-medium text-fg text-[16px]">{s.value}</span>
               </button>
             ))}
@@ -273,7 +273,7 @@ function PriorityDistribution({ data, loading }: { data?: ProjectSummary; loadin
       {loading ? (
         <Skeleton className="h-56" />
       ) : (
-        <ResponsiveContainer width="100%" height={220}>
+        <ResponsiveContainer width="100%" height={250}>
           <BarChart data={bars}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
             <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#8888a0' }} />

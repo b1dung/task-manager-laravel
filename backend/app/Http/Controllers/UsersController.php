@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\AppUserResource;
+use App\Models\RefreshToken;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -113,6 +114,23 @@ class UsersController extends Controller
         }
 
         $user->update(['password_hash' => Hash::make($data['newPassword'])]);
+
+        return response()->ok(null);
+    }
+
+    /** Admin-only (manage_users): force-reset another user's password — no current password needed. */
+    public function resetPassword(Request $request, string $id): JsonResponse
+    {
+        $data = $request->validate([
+            'newPassword' => ['required', 'string', 'min:8'],
+        ]);
+
+        $user = User::findOrFail($id);
+        $user->update(['password_hash' => Hash::make($data['newPassword'])]);
+
+        // Invalidate existing sessions so the old password can't keep a session alive.
+        $user->tokens()->delete();
+        RefreshToken::where('user_id', $user->id)->whereNull('revoked_at')->update(['revoked_at' => now()]);
 
         return response()->ok(null);
     }

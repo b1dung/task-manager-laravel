@@ -1,8 +1,8 @@
 import React, {useEffect, useState} from 'react'
 import {createPortal} from 'react-dom'
-import {Search, X, SlidersHorizontal, UserX} from 'lucide-react'
+import {Search, X, SlidersHorizontal, UserX, ChevronLeft} from 'lucide-react'
 import {useQuery} from '@tanstack/react-query'
-import {membersApi} from '@/api/members'
+import {membersApi, type ProjectMember} from '@/api/members'
 import {labelsApi} from '@/api/labels'
 import {sprintsApi} from '@/api/sprints'
 import {useFilterStore} from '@/stores/useFilterStore'
@@ -98,6 +98,13 @@ export function FilterBar({projectId}: FilterBarProps) {
                         </button>
                     )}
                 </div>
+
+                {/* Quick assignee avatar filter (Jira-style overlapping stack) */}
+                <AssigneeAvatarStack
+                    members={members}
+                    selected={board.assigneeId ?? []}
+                    onToggle={(id) => toggleMulti('assigneeId', id)}
+                />
 
                 {/* Filter button */}
                 <button
@@ -357,6 +364,62 @@ export function FilterBar({projectId}: FilterBarProps) {
                 document.body,
             ) : null}
         </>
+    )
+}
+
+// Jira-style overlapping avatar quick-filter: click an avatar to toggle the
+// assignee filter. Earlier avatars sit on top of (overlap) later ones by 8px.
+// Caps at 5; a "+N" chip expands the rest of the members inline into the same
+// stack (and collapses back). No dropdown.
+function AssigneeAvatarStack({members, selected, onToggle}: {
+    members: ProjectMember[]
+    selected: string[]
+    onToggle: (userId: string) => void
+}) {
+    const {t} = useTranslation()
+    const [expanded, setExpanded] = useState(false)
+
+    if (members.length === 0) return null
+
+    const MAX = 5
+    const visible = expanded ? members : members.slice(0, MAX)
+    const extra = members.length - MAX
+
+    return (
+        <div className="flex items-center">
+            {visible.map((m, i) => {
+                const active = selected.includes(m.userId)
+                return (
+                    <button
+                        key={m.userId}
+                        onClick={() => onToggle(m.userId)}
+                        title={m.user.fullName}
+                        // Earlier avatars: higher z-index + overlap the next.
+                        style={{marginLeft: i === 0 ? 0 : -5, zIndex: active ? 50 : visible.length - i}}
+                        className="relative rounded-full transition-transform hover:-translate-y-0.5 focus:outline-none"
+                    >
+                        <Avatar
+                            name={m.user.fullName}
+                            avatarUrl={m.user.avatarUrl}
+                            size="sm"
+                            className={cn('ring-2', active ? 'ring-accent' : 'ring-bg')}
+                        />
+                    </button>
+                )
+            })}
+
+            {/* More than MAX members: toggle showing all of them inline. */}
+            {extra > 0 && (
+                <button
+                    onClick={() => setExpanded((v) => !v)}
+                    title={expanded ? t('filter.showLess') : t('filter.showAllAssignees')}
+                    style={{marginLeft: -5, zIndex: 0}}
+                    className="relative w-7.5 h-7.5 rounded-full bg-bg-elevated ring-2 ring-bg border border-border text-[11px] font-semibold text-fg-muted inline-flex items-center justify-center hover:text-fg hover:border-border-bright transition-colors"
+                >
+                    {expanded ? <ChevronLeft className="w-3.5 h-3.5"/> : `+${extra}`}
+                </button>
+            )}
+        </div>
     )
 }
 

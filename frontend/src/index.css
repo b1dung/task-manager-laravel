@@ -205,6 +205,37 @@
     background: transparent;
   }
 
+  /* Scrollbar that reserves its gutter at all times (stable → no reflow and a
+     consistent right edge whether or not the column overflows) and whose thumb
+     only appears while hovering the scroll area. Pair with asymmetric padding
+     (e.g. pl-3 pr-1) so padding-right + gutter equals padding-left. */
+  .scrollbar-overlay {
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+  .scrollbar-overlay:hover {
+    scrollbar-color: rgb(var(--color-border)) transparent;
+  }
+  .scrollbar-overlay::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scrollbar-overlay::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-overlay::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 9999px;
+  }
+  .scrollbar-overlay:hover::-webkit-scrollbar-thumb {
+    background: rgb(var(--color-border));
+  }
+  .scrollbar-overlay::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--color-fg-subtle));
+  }
+
   .gradient-accent {
     background: var(--accent-gradient);
   }

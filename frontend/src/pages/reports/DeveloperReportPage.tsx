@@ -8,8 +8,9 @@ import {
   BarChart, Bar, LineChart, Line, AreaChart, Area, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
-import { format, subDays } from 'date-fns'
-import { CheckCircle2, ListTodo, Percent, Clock, AlertTriangle, Timer, Gauge, Download } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { format, subDays, startOfWeek, startOfMonth, startOfQuarter, startOfYear } from 'date-fns'
+import { CheckCircle2, ListTodo, Percent, Clock, AlertTriangle, Timer, Gauge, Download, X } from 'lucide-react'
 import { reportsApi, type DeveloperGrade, type DevReportParams } from '@/api/reports'
 import { membersApi } from '@/api/members'
 import { projectsApi } from '@/api/projects'
@@ -47,11 +48,10 @@ const CHART_TOOLTIP = { backgroundColor: '#1b1b23', border: '1px solid #2d2d38',
 export function DeveloperReportPage() {
   const { t } = useTranslation()
   const timezone = useSiteTimezone()
-  const toast = useToast()
   const { projectId = '' } = useParams<{ projectId: string }>()
 
-  const [period, setPeriod] = useState<Period>('week')
-  const [from, setFrom] = useState(format(subDays(new Date(), 7), 'yyyy-MM-dd'))
+  const [period, setPeriod] = useState<Period>('month')
+  const [from, setFrom] = useState(format(subDays(new Date(), PERIOD_DAYS.month), 'yyyy-MM-dd'))
   const [to, setTo] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [userId, setUserId] = useState('')
   const [priority, setPriority] = useState('')
@@ -102,27 +102,11 @@ export function DeveloperReportPage() {
 
   const reset = () => {
     const newTo = format(new Date(), 'yyyy-MM-dd')
-    const newFrom = format(subDays(new Date(), 7), 'yyyy-MM-dd')
-    setPeriod('week'); setFrom(newFrom); setTo(newTo); setUserId(''); setPriority('')
+    const newFrom = format(subDays(new Date(), PERIOD_DAYS.month), 'yyyy-MM-dd')
+    setPeriod('month'); setFrom(newFrom); setTo(newTo); setUserId(''); setPriority('')
   }
 
-  const [exporting, setExporting] = useState(false)
-  const exportXlsx = async () => {
-    setExporting(true)
-    try {
-      const blob = await reportsApi.exportDeveloperReportXlsx(projectId, {
-        from, to, userId: userId || undefined, priority: priority || undefined, baseUrl: window.location.origin,
-      })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url; a.download = `developer-report-${from}_${to}-${format(new Date(), 'yyyyMMdd-HHmmss')}.xlsx`; a.click()
-      URL.revokeObjectURL(url)
-    } catch {
-      toast.error(t('pages.exportFailed'))
-    } finally {
-      setExporting(false)
-    }
-  }
+  const [exportOpen, setExportOpen] = useState(false)
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -133,7 +117,7 @@ export function DeveloperReportPage() {
           <p className="text-xs text-fg-muted mt-0.5">{t('pages.developerReportSubtitle')}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Button variant="primary" size="sm" className="gap-1.5 shrink-0" onClick={exportXlsx} loading={exporting}><Download className="w-4 h-4" /> {t('reports.exportCsv')}</Button>
+          <Button variant="primary" size="sm" className="gap-1.5 shrink-0" onClick={() => setExportOpen(true)}><Download className="w-4 h-4" /> {t('reports.exportCsv')}</Button>
         </div>
       </div>
 
@@ -379,7 +363,120 @@ export function DeveloperReportPage() {
         onClose={() => setOpenTaskId(null)}
         onOpenTask={(id) => setOpenTaskId(id)}
       />
+
+      {exportOpen && (
+        <DevExportDialog
+          projectId={projectId}
+          userId={userId || undefined}
+          priority={priority || undefined}
+          onClose={() => setExportOpen(false)}
+        />
+      )}
     </div>
+  )
+}
+
+// ─── Export dialog (pick a period, like the Reports page) ────────────────────────
+
+type ExportMode = 'week' | 'month' | 'quarter' | 'year' | 'custom'
+
+const EXPORT_MODES: { value: ExportMode; labelKey: string }[] = [
+  { value: 'week', labelKey: 'reports.exportWeek' },
+  { value: 'month', labelKey: 'reports.exportMonth' },
+  { value: 'quarter', labelKey: 'reports.exportQuarter' },
+  { value: 'year', labelKey: 'reports.exportYear' },
+  { value: 'custom', labelKey: 'reports.exportCustom' },
+]
+
+function DevExportDialog({ projectId, userId, priority, onClose }: {
+  projectId: string; userId?: string; priority?: string; onClose: () => void
+}) {
+  const { t } = useTranslation()
+  const toast = useToast()
+  const [mode, setMode] = useState<ExportMode>('week')
+  const [customFrom, setCustomFrom] = useState(format(subDays(new Date(), 7), 'yyyy-MM-dd'))
+  const [loading, setLoading] = useState(false)
+
+  const rangeFor = (m: ExportMode): { from: string; to: string } => {
+    const now = new Date()
+    const to = format(now, 'yyyy-MM-dd')
+    if (m === 'custom') return { from: customFrom, to }
+    const start =
+      m === 'week' ? startOfWeek(now, { weekStartsOn: 1 })
+      : m === 'month' ? startOfMonth(now)
+      : m === 'quarter' ? startOfQuarter(now)
+      : startOfYear(now)
+    return { from: format(start, 'yyyy-MM-dd'), to }
+  }
+
+  const doExport = async () => {
+    const { from, to } = rangeFor(mode)
+    if (mode === 'custom' && !from) { toast.error(t('reports.exportPickStart')); return }
+    setLoading(true)
+    try {
+      const blob = await reportsApi.exportDeveloperReportXlsx(projectId, { from, to, userId, priority, baseUrl: window.location.origin })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `developer-report-${from}_${to}-${format(new Date(), 'yyyyMMdd-HHmmss')}.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success(t('reports.exportSuccess'))
+      onClose()
+    } catch {
+      toast.error(t('reports.exportFailed'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative w-[440px] max-w-[92vw] rounded-xl border border-border bg-bg-surface shadow-app-lg overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+          <h3 className="text-sm font-semibold text-fg">{t('reports.exportCsv')}</h3>
+          <button onClick={onClose} className="text-fg-muted hover:text-fg transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="px-5 py-4 space-y-1">
+          <p className="text-xs text-fg-muted mb-1.5">{t('reports.exportChoose')}</p>
+          {EXPORT_MODES.map((opt) => (
+            <label key={opt.value} className="flex items-center gap-2 cursor-pointer select-none py-1">
+              <input
+                type="radio"
+                name="devExportMode"
+                value={opt.value}
+                checked={mode === opt.value}
+                onChange={() => setMode(opt.value)}
+                className="accent-accent w-4 h-4"
+              />
+              <span className="text-sm text-fg">{t(opt.labelKey)}</span>
+            </label>
+          ))}
+          {mode === 'custom' && (
+            <div className="pl-6 pt-1">
+              <label className="text-xs text-fg-muted block mb-1">{t('reports.exportStartDate')}</label>
+              <input
+                type="date"
+                value={customFrom}
+                max={format(new Date(), 'yyyy-MM-dd')}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                className="h-8 rounded-lg border border-border bg-bg-elevated px-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-2 px-5 py-3.5 border-t border-border">
+          <Button variant="ghost" size="sm" onClick={onClose}>{t('common.cancel')}</Button>
+          <Button variant="primary" size="sm" loading={loading} onClick={doExport}>{t('reports.exportAction')}</Button>
+        </div>
+      </div>
+    </div>,
+    document.body,
   )
 }
 

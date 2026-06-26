@@ -62,6 +62,10 @@ export const usersApi = {
   changePassword: (id: string, dto: { currentPassword: string; newPassword: string }) =>
     apiClient.patch(`/users/${id}/password`, dto),
 
+  /** Admin (manage_users): force-reset another user's password. */
+  resetPassword: (id: string, newPassword: string) =>
+    apiClient.patch(`/users/${id}/reset-password`, { newPassword }),
+
   uploadAvatar: (id: string, file: File) => {
     const form = new FormData()
     form.append('file', file)

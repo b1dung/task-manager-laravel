@@ -9,7 +9,6 @@ import { authApi } from '@/api/auth'
 import { usersApi } from '@/api/users'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { Button, Input, Modal } from '@/components/ui'
-import { useToast } from '@/hooks/useToast'
 import { useTranslation } from 'react-i18next'
 import { AuthLanguagePicker } from './AuthLanguagePicker'
 import { currentAppLanguage } from '@/i18n'
@@ -31,13 +30,24 @@ export function LoginPage() {
   }), [t])
   const navigate = useNavigate()
   const { setAuth } = useAuthStore()
-  const toast = useToast()
   const [searchParams] = useSearchParams()
   const [showPending, setShowPending] = useState(searchParams.get('pending') === '1')
+  const [loginError, setLoginError] = useState<string | null>(null)
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   })
+
+  // Turn an API failure into a specific, localized message.
+  const loginErrorMessage = (err: unknown): string => {
+    const status = errorStatus(err)
+    const raw = (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message
+    const msg = Array.isArray(raw) ? raw[0] : raw
+    if (status === 429) return t('auth.tooManyAttempts')
+    if (status === 401 && typeof msg === 'string' && /two|2fa|factor/i.test(msg)) return t('auth.otpRequired')
+    if (status === 401) return t('auth.invalidCredentials')
+    return msg || t('auth.loginFailed')
+  }
 
   const { mutate, isPending } = useMutation({
     mutationFn: authApi.login,
@@ -49,8 +59,8 @@ export function LoginPage() {
     },
     onError: (err) => {
       // Account exists but is not yet approved → show a blocking notice.
-      if (errorStatus(err) === 403) setShowPending(true)
-      else toast.error(t('auth.invalidCredentials'))
+      if (errorStatus(err) === 403) { setShowPending(true); return }
+      setLoginError(loginErrorMessage(err))
     },
   })
 
@@ -65,7 +75,12 @@ export function LoginPage() {
           <p className="mt-1 text-sm text-fg-muted">{t('auth.welcomeBack')}</p>
         </div>
 
-        <form onSubmit={handleSubmit((d) => mutate(d))} className="space-y-4">
+        <form onSubmit={handleSubmit((d) => { setLoginError(null); mutate(d) })} className="space-y-4">
+          {loginError && (
+            <div className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
+              {loginError}
+            </div>
+          )}
           <Input
             {...register('email')}
             label={t('auth.email')}

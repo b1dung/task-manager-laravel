@@ -27,7 +27,7 @@ export function ReportsPage() {
   const { projectId = '' } = useParams<{ projectId: string }>()
   const { reports, setReportFilter } = useFilterStore()
   const [exportOpen, setExportOpen] = useState(false)
-  const [period, setPeriod] = useState<Period>('week')
+  const [period, setPeriod] = useState<Period>('month')
 
   const { data: members = [] } = useQuery({
     queryKey: ['members', projectId],
@@ -76,21 +76,21 @@ export function ReportsPage() {
   }
 
   const reset = () => {
-    setPeriod('week')
+    setPeriod('month')
     setReportFilter({
-      from: format(subDays(new Date(), 7), 'yyyy-MM-dd'),
+      from: format(subDays(new Date(), PERIOD_DAYS.month), 'yyyy-MM-dd'),
       to: format(new Date(), 'yyyy-MM-dd'),
       userId: undefined,
       sprintId: undefined,
     })
   }
 
-  // On mount: default to the last week, or derive the active chip from a saved range.
+  // On mount: default to the last month, or derive the active chip from a saved range.
   const todayStr = format(new Date(), 'yyyy-MM-dd')
   useEffect(() => {
     // Member filter was removed — clear any stale per-user filter.
     if (reports.userId) setReportFilter({ userId: undefined })
-    if (!reports.from && !reports.to) { applyPeriod('week'); return }
+    if (!reports.from && !reports.to) { applyPeriod('month'); return }
     const match = reports.to === todayStr && reports.from
       ? (['week', 'month', 'quarter', 'year'] as const).find(
           (p) => reports.from === format(subDays(new Date(), PERIOD_DAYS[p]), 'yyyy-MM-dd'))

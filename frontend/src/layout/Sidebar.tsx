@@ -34,8 +34,8 @@ const NAV_GROUPS: { titleKey: string; items: NavItem[] }[] = [
   {
     titleKey: 'nav.overview',
     items: [
-      { to: 'tasks', icon: LayoutGrid, labelKey: 'nav.board' },
       { to: 'summary', icon: Globe, labelKey: 'nav.summary' },
+      { to: 'tasks', icon: LayoutGrid, labelKey: 'nav.board' },
       { to: 'list', icon: List, labelKey: 'nav.list', requiresProject: true },
     ],
   },

@@ -49,8 +49,8 @@ Route::get('/health/ready', function () {
 // ── Auth ────────────────────────────────────────────────────────────────────
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register'])->middleware('throttle:5,1');
-    Route::post('login', [AuthController::class, 'login'])->middleware('throttle:10,1');
-    Route::post('refresh', [AuthController::class, 'refresh'])->middleware('throttle:30,1');
+    Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login');
+    Route::post('refresh', [AuthController::class, 'refresh'])->middleware('throttle:refresh');
     Route::post('password/forgot', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
     Route::post('password/reset', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
     Route::post('email/verify', [AuthController::class, 'verifyEmail'])->middleware('throttle:10,1');
@@ -103,6 +103,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('users/me', [UsersController::class, 'deleteOwnAccount']);
     Route::get('users/{id}', [UsersController::class, 'show']);
     Route::patch('users/{id}/password', [UsersController::class, 'changePassword']);
+    Route::patch('users/{id}/reset-password', [UsersController::class, 'resetPassword'])->middleware('permission:manage_users');
     Route::patch('users/{id}/avatar', [UsersController::class, 'uploadAvatar']);
     Route::patch('users/{id}', [UsersController::class, 'update']);
     Route::delete('users/{id}', [UsersController::class, 'destroy'])->middleware('permission:manage_users');

@@ -37,6 +37,7 @@ export function UserManagementPage() {
   const [showInvite, setShowInvite] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<AppUser | null>(null)
+  const [resetTarget, setResetTarget] = useState<AppUser | null>(null)
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users', debouncedSearch],
@@ -212,6 +213,15 @@ export function UserManagementPage() {
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
                           )}
+                          {canActOn(u) && (
+                            <button
+                              onClick={() => setResetTarget(u)}
+                              className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-bg-subtle transition-colors"
+                              title={t('users.resetPassword')}
+                            >
+                              <Lock className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           {u.id !== currentUserId && canActOn(u) && (
                             <button
                               onClick={() => setDeleteTarget(u)}
@@ -236,6 +246,7 @@ export function UserManagementPage() {
         <>
           <CreateUserModal open={showCreate} roles={roles} onClose={() => setShowCreate(false)} />
           <EditUserModal open={!!editId} userId={editId} roles={roles} onClose={() => setEditId(null)} />
+          <ResetPasswordModal user={resetTarget} onClose={() => setResetTarget(null)} />
           <InviteModal open={showInvite} roles={roles} onClose={() => setShowInvite(false)} />
           <Modal open={!!deleteTarget} onClose={() => !deleting && setDeleteTarget(null)} title={t('users.deleteTitle')} size="sm">
             {deleteTarget && (
@@ -265,6 +276,68 @@ export function UserManagementPage() {
         </>
       )}
     </div>
+  )
+}
+
+function generatePassword(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789@#$%&'
+  const rnd = crypto.getRandomValues(new Uint32Array(14))
+  return Array.from(rnd, (n) => chars[n % chars.length]).join('')
+}
+
+function ResetPasswordModal({ user, onClose }: { user: AppUser | null; onClose: () => void }) {
+  const { t } = useTranslation()
+  const qc = useQueryClient()
+  const toast = useToast()
+  const [password, setPassword] = useState('')
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    if (user) { setPassword(generatePassword()); setCopied(false) }
+  }, [user])
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: () => usersApi.resetPassword(user!.id, password),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['users'] })
+      toast.success(t('users.resetPasswordDone'))
+      onClose()
+    },
+    onError: (err) => toast.error(apiErrorMessage(err, t('users.resetPasswordFailed'))),
+  })
+
+  const copy = () => {
+    navigator.clipboard.writeText(password)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  const tooShort = password.length > 0 && password.length < 8
+
+  return (
+    <Modal open={!!user} onClose={() => !isPending && onClose()} title={t('users.resetPasswordTitle')} size="sm">
+      <div className="px-5 py-4 space-y-3">
+        <p className="text-sm text-fg-muted">{t('users.resetPasswordDesc', { name: user?.fullName ?? '' })}</p>
+        <div>
+          <label className={labelCls}><Lock className="w-3.5 h-3.5" /> {t('users.newPassword')}</label>
+          <div className="mt-1.5 flex gap-2">
+            <input value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} autoFocus />
+            <Button variant="ghost" size="sm" onClick={copy} title={t('users.copy')}>
+              {copied ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setPassword(generatePassword())}>{t('users.generate')}</Button>
+          </div>
+          {tooShort && <p className="text-xs text-danger mt-1">{t('users.passwordMin')}</p>}
+        </div>
+        <p className="text-xs text-fg-subtle">{t('users.resetPasswordNote')}</p>
+      </div>
+      <div className="flex justify-end gap-2 px-5 py-3.5 border-t border-border">
+        <Button variant="ghost" size="sm" disabled={isPending} onClick={onClose}>{t('common.cancel')}</Button>
+        <Button variant="primary" size="sm" loading={isPending} disabled={password.length < 8} onClick={() => mutate()}>
+          {t('users.resetPasswordAction')}
+        </Button>
+      </div>
+    </Modal>
   )
 }
 

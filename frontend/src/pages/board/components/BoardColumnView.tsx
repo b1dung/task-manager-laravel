@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, type UIEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
@@ -17,6 +17,10 @@ const COLUMN_COLORS = [
 ]
 
 const RAINBOW = 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)'
+
+// Render this many cards per column at first; reveal more on scroll so a column with
+// hundreds of tasks doesn't mount everything at once on page load.
+const COLUMN_PAGE = 20
 
 function ColorPicker({ value, onChange }: { value?: string | null; onChange: (color: string) => void }) {
   const { t } = useTranslation()
@@ -92,6 +96,18 @@ export function BoardColumnView({
   // Only show parent tasks on the board; subtasks are inline inside their parent card
   const visibleTasks = tasks.filter((t) => t.parentTaskId === null)
   const { setNodeRef, isOver } = useDroppable({ id: column.id, data: { column, type: 'column' } })
+
+  // Progressive rendering: mount only COLUMN_PAGE cards, load more when scrolled near the bottom.
+  const [renderCount, setRenderCount] = useState(COLUMN_PAGE)
+  useEffect(() => { setRenderCount(COLUMN_PAGE) }, [column.id])
+  const shownTasks = visibleTasks.slice(0, renderCount)
+  const hasMore = visibleTasks.length > shownTasks.length
+  const handleListScroll = (e: UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget
+    if (hasMore && el.scrollHeight - el.scrollTop - el.clientHeight < 160) {
+      setRenderCount((c) => Math.min(c + COLUMN_PAGE, visibleTasks.length))
+    }
+  }
 
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(column.name)
@@ -200,12 +216,15 @@ export function BoardColumnView({
         />}
       </div>
 
-      {/* Task list */}
-      <div className="flex-1 px-2.5 py-2 space-y-2 overflow-y-auto scrollbar-thin min-h-[80px] max-h-[calc(100vh-240px)]">
-        <SortableContext items={visibleTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+      {/* Task list — left 12px; right 4px so it + the 8px scrollbar gutter = 12px (balanced) */}
+      <div
+        onScroll={handleListScroll}
+        className="flex-1 pl-3 pr-1 py-2 space-y-2 scrollbar-overlay min-h-[80px] max-h-[calc(100vh-240px)]"
+      >
+        <SortableContext items={shownTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           {isLoading
             ? [...Array(3)].map((_, i) => <TaskCardSkeleton key={i} />)
-            : visibleTasks.map((task) => (
+            : shownTasks.map((task) => (
                 <TaskCard
                   key={task.id}
                   task={task}
@@ -215,10 +234,19 @@ export function BoardColumnView({
                 />
               ))}
         </SortableContext>
+        {hasMore && (
+          <button
+            type="button"
+            onClick={() => setRenderCount((c) => Math.min(c + COLUMN_PAGE, visibleTasks.length))}
+            className="w-full py-1.5 text-xs text-fg-subtle hover:text-fg transition-colors"
+          >
+            {t('board.showMoreTasks', { count: visibleTasks.length - shownTasks.length })}
+          </button>
+        )}
       </div>
 
       {/* Add task button */}
-      {canCreateTask && <div className="px-2.5 py-2 border-t border-border">
+      {canCreateTask && <div className="px-3 py-2 border-t border-border">
         <Button
           variant="ghost"
           size="sm"

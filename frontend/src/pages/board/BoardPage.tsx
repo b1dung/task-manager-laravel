@@ -57,6 +57,44 @@ function columnNameToStatus(name: string): string {
   return 'todo'
 }
 
+// Optimistically reindex a move: drop the task at `targetIndex` in the target column and
+// renumber the affected column(s) 0..n. Mirrors the backend so the UI matches instantly.
+function reindexAfterMove(
+  data: Task[],
+  draggingId: string,
+  targetColumnId: string,
+  targetIndex: number,
+  newStatus: string,
+): Task[] {
+  const moving = data.find((t) => t.id === draggingId)
+  if (!moving) return data
+  const oldColumnId = moving.columnId
+
+  const destIds = data
+    .filter((t) => t.columnId === targetColumnId && t.id !== draggingId)
+    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    .map((t) => t.id)
+  const idx = Math.max(0, Math.min(targetIndex, destIds.length))
+  destIds.splice(idx, 0, draggingId)
+  const destPos = new Map(destIds.map((id, i) => [id, i]))
+
+  let oldPos: Map<string, number> | null = null
+  if (oldColumnId !== targetColumnId) {
+    const oldIds = data
+      .filter((t) => t.columnId === oldColumnId && t.id !== draggingId)
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+      .map((t) => t.id)
+    oldPos = new Map(oldIds.map((id, i) => [id, i]))
+  }
+
+  return data.map((t) => {
+    if (t.id === draggingId) return { ...t, columnId: targetColumnId, status: newStatus, position: destPos.get(draggingId)! }
+    if (destPos.has(t.id)) return { ...t, position: destPos.get(t.id)! }
+    if (oldPos?.has(t.id)) return { ...t, position: oldPos.get(t.id)! }
+    return t
+  })
+}
+
 export function BoardPage() {
   const { t } = useTranslation()
   const { projectId = '' } = useParams<{ projectId: string }>()
@@ -122,9 +160,12 @@ export function BoardPage() {
     setSelectedTaskFallback(issueParam ? (allTasks.find((tk) => tk.id === issueParam) ?? null) : null)
   }, [issueParam, allTasks])
 
-  // Simple stable grouping — never change columns mid-drag
+  // Group by column, ordered by the manual drag-drop position (not created/updated).
   const tasksByColumn = useCallback(
-    (colId: string) => allTasks.filter((t) => t.columnId === colId),
+    (colId: string) =>
+      allTasks
+        .filter((t) => t.columnId === colId)
+        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
     [allTasks],
   )
 
@@ -298,19 +339,15 @@ export function BoardPage() {
     const targetColumn = columns.find((c) => c.id === targetColumnId)
     const newStatus = targetColumn ? columnNameToStatus(targetColumn.name) : dragging.status
 
-    const updatedTask = { ...dragging, columnId: targetColumnId, position: targetPosition, status: newStatus }
-
-    // Optimistic update — list cache
+    // Optimistic update — list cache: reindex positions so the card lands exactly at the
+    // drop spot (mirrors the backend reindex; avoids a flicker before the refetch).
     qc.setQueryData(['tasks', projectId, filters], (old: typeof tasksResult) => {
       if (!old) return old
-      return {
-        ...old,
-        data: old.data.map((t) => (t.id === dragging.id ? updatedTask : t)),
-      }
+      return { ...old, data: reindexAfterMove(old.data, dragging.id, targetColumnId, targetPosition, newStatus) }
     })
 
     // Optimistic update — individual task cache (used by TaskDetailModal)
-    qc.setQueryData(['task', projectId, dragging.id], updatedTask)
+    qc.setQueryData(['task', projectId, dragging.id], { ...dragging, columnId: targetColumnId, status: newStatus })
 
     moveTask({ id: dragging.id, columnId: targetColumnId, position: targetPosition })
   }
@@ -345,7 +382,7 @@ export function BoardPage() {
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="flex items-start gap-4 overflow-x-auto scrollbar-thin pb-4 flex-1 ">
+        <div className="flex gap-4 overflow-x-auto scrollbar-thin pb-4 flex-1 ">
           {columns.map((col) => (
             <BoardColumnView
               key={col.id}

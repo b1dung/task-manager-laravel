@@ -74,7 +74,7 @@ const PRIORITY_CONFIG: Record<string, { color: string; svg: string; hexColor: st
   lowest: { color: 'text-fg-subtle',svg: '/priority/lowest_new.svg',  hexColor: '#8899BB' },
 }
 
-const DEFAULT_AVATAR = 'https://jira.mintoku.vn/assets/images/default-avatar.jpg'
+const DEFAULT_AVATAR = '/default-avatar.jpg'
 
 // ─── Time Helpers ─────────────────────────────────────────────────────────────
 
@@ -1165,6 +1165,157 @@ function SubtaskStatusPicker({ sub, projectId, columns, onUpdate }: {
   )
 }
 
+// Inline assignee picker for a subtask row.
+function SubtaskAssigneePicker({ sub, projectId, onUpdate }: {
+  sub: Task; projectId: string; onUpdate: () => void
+}) {
+  const { t: tr } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const { data: members = [] } = useQuery({
+    queryKey: ['members', projectId],
+    queryFn: () => membersApi.list(projectId),
+  })
+
+  const openDropdown = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      setPos({ top: r.bottom + 4, left: r.right })
+    }
+    setOpen((v) => !v)
+  }
+
+  const pick = async (userId: string | null) => {
+    if ((userId ?? null) !== (sub.assigneeId ?? null)) {
+      await tasksApi.update(projectId, sub.id, { assigneeId: userId })
+    }
+    onUpdate()
+    setOpen(false)
+  }
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        onClick={openDropdown}
+        className="w-full inline-flex items-center gap-1 px-1 py-0.5 rounded-[4px] hover:bg-bg-elevated transition-colors"
+        title={tr('taskDetail.fAssignee')}
+      >
+        {sub.assignee ? (
+          <Avatar name={sub.assignee.fullName} avatarUrl={sub.assignee.avatarUrl} size="xs" className="shrink-0" />
+        ) : (
+          <img src={DEFAULT_AVATAR} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
+        )}
+        <span className="text-[12px] text-fg-muted truncate">{sub.assignee?.fullName ?? tr('common.unassigned')}</span>
+      </button>
+      {open && createPortal(
+        <>
+          <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
+          <div
+            className="fixed z-[9999] w-52 max-h-64 overflow-y-auto scrollbar-thin rounded-lg border border-border bg-bg-surface shadow-app-md py-0.5"
+            style={{ top: pos.top, left: pos.left - 208 }}
+          >
+            <button
+              onClick={(e) => { e.stopPropagation(); pick(null) }}
+              className={cn('w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-bg-subtle transition-colors', !sub.assigneeId && 'bg-bg-subtle')}
+            >
+              <img src={DEFAULT_AVATAR} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
+              <span className="flex-1 text-left text-fg-muted truncate">{tr('common.unassigned')}</span>
+              {!sub.assigneeId && <Check className="w-3.5 h-3.5 text-accent shrink-0" />}
+            </button>
+            {members.map((m) => {
+              const isCurrent = sub.assigneeId === m.userId
+              return (
+                <button
+                  key={m.userId}
+                  onClick={(e) => { e.stopPropagation(); pick(m.userId) }}
+                  className={cn('w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-bg-subtle transition-colors', isCurrent && 'bg-bg-subtle')}
+                >
+                  <Avatar name={m.user.fullName} avatarUrl={m.user.avatarUrl} size="xs" />
+                  <span className="flex-1 text-left text-fg truncate">{m.user.fullName}</span>
+                  {isCurrent && <Check className="w-3.5 h-3.5 text-accent shrink-0" />}
+                </button>
+              )
+            })}
+          </div>
+        </>,
+        document.body,
+      )}
+    </>
+  )
+}
+
+const SUBTASK_PRIORITY_KEYS = ['urgent', 'high', 'medium', 'low', 'lowest']
+
+// Inline priority picker for a subtask row.
+function SubtaskPriorityPicker({ sub, projectId, onUpdate }: {
+  sub: Task; projectId: string; onUpdate: () => void
+}) {
+  const { t: tr } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+
+  const current = PRIORITY_CONFIG[sub.priority] ?? PRIORITY_CONFIG.medium
+
+  const openDropdown = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      setPos({ top: r.bottom + 4, left: r.right })
+    }
+    setOpen((v) => !v)
+  }
+
+  const pick = async (p: string) => {
+    if (p !== sub.priority) await tasksApi.update(projectId, sub.id, { priority: p })
+    onUpdate()
+    setOpen(false)
+  }
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        onClick={openDropdown}
+        className="w-full inline-flex items-center gap-1 px-1 py-0.5 rounded-[4px] hover:bg-bg-elevated transition-colors"
+        title={tr('taskDetail.fPriority')}
+      >
+        <img src={current.svg} alt="" width={14} height={14} className="shrink-0" />
+        <span className="text-[12px] truncate" style={{ color: current.hexColor }}>{tr('priority.' + sub.priority)}</span>
+      </button>
+      {open && createPortal(
+        <>
+          <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
+          <div
+            className="fixed z-[9999] w-40 rounded-lg border border-border bg-bg-surface shadow-app-md py-0.5"
+            style={{ top: pos.top, left: pos.left - 160 }}
+          >
+            {SUBTASK_PRIORITY_KEYS.map((p) => {
+              const cfg = PRIORITY_CONFIG[p]
+              const isCurrent = p === sub.priority
+              return (
+                <button
+                  key={p}
+                  onClick={(e) => { e.stopPropagation(); pick(p) }}
+                  className={cn('w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-bg-subtle transition-colors', isCurrent && 'bg-bg-subtle')}
+                >
+                  <img src={cfg.svg} alt="" width={14} height={14} className="shrink-0" />
+                  <span className="flex-1 text-left text-fg truncate">{tr('priority.' + p)}</span>
+                  {isCurrent && <Check className="w-3.5 h-3.5 text-accent shrink-0" />}
+                </button>
+              )
+            })}
+          </div>
+        </>,
+        document.body,
+      )}
+    </>
+  )
+}
+
 // ─── Subtasks Section ─────────────────────────────────────────────────────────
 
 function SubtasksSection({ task, projectId, projectKey = 'TASK', onSubtaskClick }: {
@@ -1247,9 +1398,11 @@ function SubtasksSection({ task, projectId, projectKey = 'TASK', onSubtaskClick 
 
       <div className="space-y-1">
         {subtasks.map((sub) => {
-          const pri = PRIORITY_CONFIG[sub.priority] ?? PRIORITY_CONFIG.medium
-          const priorityLabel = tr('priority.' + sub.priority)
           const taskCode = sub.taskNumber != null ? `${projectKey}-${sub.taskNumber}` : null
+          const refresh = () => {
+            qc.invalidateQueries({ queryKey: ['task', projectId, task.id] })
+            qc.invalidateQueries({ queryKey: ['tasks', projectId] })
+          }
           return (
             <div
               key={sub.id}
@@ -1280,38 +1433,19 @@ function SubtasksSection({ task, projectId, projectKey = 'TASK', onSubtaskClick 
                 </span>
               </div>
 
-              {/* Priority — 76px fixed */}
-              <div className="w-[76px] shrink-0 flex items-center gap-1">
-                <img src={pri.svg} alt={priorityLabel} width={14} height={14} className="shrink-0" />
-                <span className="text-[12px] truncate" style={{ color: pri.hexColor }}>{priorityLabel}</span>
+              {/* Priority — 76px fixed (inline editable) */}
+              <div className="w-[76px] shrink-0">
+                <SubtaskPriorityPicker sub={sub} projectId={projectId} onUpdate={refresh} />
               </div>
 
-              {/* Assignee — 108px fixed */}
-              <div className="w-[108px] shrink-0 flex items-center gap-1">
-                {sub.assignee ? (
-                  <>
-                    <Avatar name={sub.assignee.fullName} avatarUrl={sub.assignee.avatarUrl} size="xs" className="shrink-0" />
-                    <span className="text-[12px] text-fg-muted truncate">{sub.assignee.fullName}</span>
-                  </>
-                ) : (
-                  <>
-                    <img src={DEFAULT_AVATAR} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
-                    <span className="text-[12px] text-fg-muted">{tr('common.unassigned')}</span>
-                  </>
-                )}
+              {/* Assignee — 108px fixed (inline editable) */}
+              <div className="w-[108px] shrink-0">
+                <SubtaskAssigneePicker sub={sub} projectId={projectId} onUpdate={refresh} />
               </div>
 
               {/* Status dropdown — 90px fixed */}
               <div className="w-[90px] shrink-0">
-                <SubtaskStatusPicker
-                  sub={sub}
-                  projectId={projectId}
-                  columns={columns}
-                  onUpdate={() => {
-                    qc.invalidateQueries({ queryKey: ['task', projectId, task.id] })
-                    qc.invalidateQueries({ queryKey: ['tasks', projectId] })
-                  }}
-                />
+                <SubtaskStatusPicker sub={sub} projectId={projectId} columns={columns} onUpdate={refresh} />
               </div>
             </div>
           )

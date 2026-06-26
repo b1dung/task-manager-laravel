@@ -194,8 +194,23 @@ class TaskController extends Controller
 
         $task = Task::where('project_id', $projectId)->findOrFail($id);
         $old = $this->snapshot($task);
-        $this->moveToColumn($task, $data['columnId'], $data['position']);
-        $task->save();
+        $oldColumnId = $task->column_id;
+        $column = Column::where('project_id', $projectId)->findOrFail($data['columnId']);
+
+        DB::transaction(function () use ($task, $column, $data, $oldColumnId) {
+            $task->column_id = $column->id;
+            $task->status = Task::columnNameToStatus($column->name);
+            $task->save();
+
+            // Reindex the destination column so the card lands exactly at the dropped
+            // index and sibling positions stay contiguous (no ties → stable manual order).
+            $this->placeInColumn($task, $column->id, $data['position']);
+
+            // Close the gap left behind in the source column.
+            if ($oldColumnId !== $column->id) {
+                $this->renumberColumn($oldColumnId);
+            }
+        });
 
         $this->activity->record($request, $projectId, 'moved', 'task', $task->id, $old, $this->snapshot($task));
         $this->notifications->taskEvent($projectId, $request->user()->id, 'task_moved', 'task', $task->id, 'moved task "'.$task->title.'"', [$task->assignee_id, $task->reporter_id, ...$this->watcherIds($task)]);
@@ -283,6 +298,43 @@ class TaskController extends Controller
         $task->column_id = $column->id;
         $task->status = Task::columnNameToStatus($column->name);
         $task->position = $position ?? Task::where('column_id', $column->id)->count();
+    }
+
+    /**
+     * Place $task at $targetIndex within $columnId and renumber that column 0..n so the
+     * manual drag-drop order is preserved with no position collisions. Updates positions
+     * via the base query builder so siblings' updated_at isn't bumped.
+     */
+    private function placeInColumn(Task $task, string $columnId, int $targetIndex): void
+    {
+        $ids = Task::where('column_id', $columnId)
+            ->whereNull('archived_at')
+            ->where('id', '!=', $task->id)
+            ->orderBy('position')
+            ->pluck('id')
+            ->all();
+
+        $targetIndex = max(0, min($targetIndex, count($ids)));
+        array_splice($ids, $targetIndex, 0, [$task->id]);
+
+        foreach ($ids as $i => $tid) {
+            DB::table('tasks')->where('id', $tid)->update(['position' => $i]);
+        }
+        $task->position = $targetIndex;
+    }
+
+    /** Renumber a column's tasks 0..n by current position (closes gaps after a task leaves). */
+    private function renumberColumn(string $columnId): void
+    {
+        $ids = Task::where('column_id', $columnId)
+            ->whereNull('archived_at')
+            ->orderBy('position')
+            ->pluck('id')
+            ->all();
+
+        foreach ($ids as $i => $tid) {
+            DB::table('tasks')->where('id', $tid)->update(['position' => $i]);
+        }
     }
 
 

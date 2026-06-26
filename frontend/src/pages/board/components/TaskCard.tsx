@@ -61,7 +61,7 @@ const STATUS_CFG: Record<string, { cls: string }> = {
     done: {cls: 'text-success bg-success/10 border-success/30'},
 }
 
-const DEFAULT_AVATAR = 'https://jira.mintoku.vn/assets/images/default-avatar.jpg'
+const DEFAULT_AVATAR = '/default-avatar.jpg'
 
 // ─── Subtask assignee picker ──────────────────────────────────────────────────
 

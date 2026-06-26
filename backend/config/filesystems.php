@@ -47,6 +47,16 @@ return [
             'report' => false,
         ],
 
+        // All user uploads (task attachments + avatars) live under one in-repo folder
+        // so they are easy to back up and are NEVER overwritten by a redeploy
+        // (zip-backend.py ships only the folder structure, not the files).
+        'uploads' => [
+            'driver' => 'local',
+            'root' => storage_path('app/uploads'),
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

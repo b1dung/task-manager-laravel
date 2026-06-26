@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AttachmentController extends Controller
 {
-    private const DISK = 'local';
+    private const DISK = 'uploads';
 
     private const DIR = 'attachments';
 

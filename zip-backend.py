@@ -8,16 +8,24 @@ out = os.path.join(root, f"backend-laravel-{stamp}.zip")
 
 # Directory names to skip entirely (matched on any path segment under backend/)
 SKIP_DIRS = {".git", "node_modules"}
-# Glob patterns (relative to backend/) to exclude
+# Glob patterns (relative to backend/) to exclude. NB: fnmatch '*' also matches '/',
+# so "storage/app/uploads/*" excludes every uploaded file at any depth.
 SKIP_GLOBS = [
     ".env",
     "storage/logs/*.log",
     "storage/framework/cache/data/*",
     "storage/framework/sessions/*",
     "storage/framework/views/*.php",
+    # User uploads (attachments + avatars): ship the folder structure (.gitignore
+    # markers, kept below) but NEVER the files, so a redeploy can't overwrite them.
+    "storage/app/uploads/*",
 ]
+# Basenames always kept even if they match a SKIP_GLOB (so empty folders survive).
+KEEP_BASENAMES = {".gitignore", ".gitkeep"}
 
 def excluded(rel):
+    if os.path.basename(rel) in KEEP_BASENAMES:
+        return False
     return any(fnmatch.fnmatch(rel, g) for g in SKIP_GLOBS)
 
 count = 0

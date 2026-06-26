@@ -8,7 +8,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
 import {
-  RefreshCw, Download, CheckCircle2, RefreshCcw, PlusCircle,
+  RefreshCw, CheckCircle2, RefreshCcw, PlusCircle,
   Clock, AlertTriangle, Ban,
 } from 'lucide-react'
 import { reportsApi, type ProjectSummary } from '@/api/reports'
@@ -78,9 +78,6 @@ export function SummaryPage() {
         <div className="flex items-center gap-2 shrink-0">
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} /> {t('summary.refresh')}
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => window.print()}>
-            <Download className="w-4 h-4" /> {t('summary.exportReport')}
           </Button>
         </div>
       </div>

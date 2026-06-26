@@ -16,6 +16,7 @@ class TaskResource extends JsonResource
             'sprintId' => $this->sprint_id,
             'title' => $this->title,
             'description' => $this->description,
+            'note' => $this->note,
             'type' => $this->type,
             'priority' => $this->priority,
             'status' => $this->status,
@@ -60,6 +61,8 @@ class TaskResource extends JsonResource
                 'columnColor' => $s->relationLoaded('column') ? $s->column?->color : null,
                 'parentTaskId' => $s->parent_task_id,
             ])),
+            'watcherCount' => $this->whenLoaded('watchers', fn () => $this->watchers->count()),
+            'isWatching' => $this->whenLoaded('watchers', fn () => $this->watchers->contains('id', $request->user()?->id)),
             'createdAt' => $this->created_at?->toIso8601String(),
             'updatedAt' => $this->updated_at?->toIso8601String(),
             'project' => $this->whenLoaded('project', fn () => [

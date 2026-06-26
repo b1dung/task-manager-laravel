@@ -39,7 +39,7 @@ class TaskController extends Controller
 
     public function show(string $projectId, string $id): JsonResponse
     {
-        $task = Task::with(self::EAGER)
+        $task = Task::with([...self::EAGER, 'watchers'])
             ->where('project_id', $projectId)->findOrFail($id);
 
         return response()->ok(new TaskResource($task));
@@ -104,6 +104,15 @@ class TaskController extends Controller
         });
 
         $this->activity->record($request, $projectId, 'created', 'task', $task->id, null, $this->snapshot($task));
+        // Also log on the parent so its History/All timeline shows the new subtask.
+        // The `action` enum is fixed, so use 'updated' + a `subtaskCreated` marker the FE recognises.
+        if ($task->parent_task_id) {
+            $this->activity->record($request, $projectId, 'updated', 'task', $task->parent_task_id, null, [
+                'subtaskCreated' => $task->title,
+                'subtaskId' => $task->id,
+                'subtaskNumber' => $task->task_number,
+            ]);
+        }
         $this->notifications->taskEvent($projectId, $request->user()->id, 'task_created', 'task', $task->id, 'created task "'.$task->title.'"', [$task->assignee_id, $task->reporter_id]);
         ProjectEvent::dispatch($projectId, 'task:created', ['task' => (new TaskResource($task->load(self::EAGER)))->resolve()]);
 
@@ -115,6 +124,7 @@ class TaskController extends Controller
         $data = $request->validate([
             'title' => ['nullable', 'string'],
             'description' => ['nullable', 'string'],
+            'note' => ['nullable', 'string'],
             'type' => ['nullable', 'in:bug,feature,task,story,epic'],
             'priority' => ['nullable', 'in:urgent,high,medium,low,lowest'],
             'status' => ['nullable', 'in:todo,in_progress,in_review,done'],
@@ -143,7 +153,7 @@ class TaskController extends Controller
         }
 
         foreach ([
-            'title' => 'title', 'description' => 'description', 'type' => 'type',
+            'title' => 'title', 'description' => 'description', 'note' => 'note', 'type' => 'type',
             'priority' => 'priority', 'assigneeId' => 'assignee_id', 'qaAssigneeId' => 'qa_assignee_id',
             'sprintId' => 'sprint_id',
             'parentTaskId' => 'parent_task_id', 'dueDate' => 'due_date',
@@ -169,7 +179,7 @@ class TaskController extends Controller
         $action = $old['assigneeId'] !== $new['assigneeId'] ? 'assigned' : ($old['status'] !== $new['status'] ? 'status_changed' : 'updated');
         $this->activity->record($request, $projectId, $action, 'task', $task->id, $old, $new);
         $type = $action === 'assigned' ? 'task_assigned' : 'task_updated';
-        $this->notifications->taskEvent($projectId, $request->user()->id, $type, 'task', $task->id, 'updated task "'.$task->title.'"', [$task->assignee_id, $task->qa_assignee_id, $task->reporter_id]);
+        $this->notifications->taskEvent($projectId, $request->user()->id, $type, 'task', $task->id, 'updated task "'.$task->title.'"', [$task->assignee_id, $task->qa_assignee_id, $task->reporter_id, ...$this->watcherIds($task)]);
         ProjectEvent::dispatch($projectId, 'task:updated', ['task' => (new TaskResource($task->fresh(self::EAGER)))->resolve()]);
 
         return response()->ok(new TaskResource($task->fresh(self::EAGER)));
@@ -188,7 +198,7 @@ class TaskController extends Controller
         $task->save();
 
         $this->activity->record($request, $projectId, 'moved', 'task', $task->id, $old, $this->snapshot($task));
-        $this->notifications->taskEvent($projectId, $request->user()->id, 'task_moved', 'task', $task->id, 'moved task "'.$task->title.'"', [$task->assignee_id, $task->reporter_id]);
+        $this->notifications->taskEvent($projectId, $request->user()->id, 'task_moved', 'task', $task->id, 'moved task "'.$task->title.'"', [$task->assignee_id, $task->reporter_id, ...$this->watcherIds($task)]);
         ProjectEvent::dispatch($projectId, 'task:moved', ['taskId' => $task->id, 'projectId' => $projectId, 'fromColumnId' => $old['columnId'], 'toColumnId' => $task->column_id, 'position' => $task->position]);
 
         return response()->ok(new TaskResource($task->fresh(self::EAGER)));
@@ -260,7 +270,7 @@ class TaskController extends Controller
             'note' => $data['description'] ?? null,
             ($isQa ? 'qaLoggedHours' : 'loggedHours') => (float) $task->{$column},
         ]);
-        $this->notifications->taskEvent($projectId, $request->user()->id, 'time_logged', 'task', $task->id, ($isQa ? 'logged QA time on "' : 'logged time on "').$task->title.'"', [$task->assignee_id, $task->qa_assignee_id, $task->reporter_id]);
+        $this->notifications->taskEvent($projectId, $request->user()->id, 'time_logged', 'task', $task->id, ($isQa ? 'logged QA time on "' : 'logged time on "').$task->title.'"', [$task->assignee_id, $task->qa_assignee_id, $task->reporter_id, ...$this->watcherIds($task)]);
         ProjectEvent::dispatch($projectId, 'task:updated', ['task' => (new TaskResource($task->fresh(self::EAGER)))->resolve()]);
 
         return response()->ok(new TaskResource($task->fresh(self::EAGER)));
@@ -275,6 +285,12 @@ class TaskController extends Controller
         $task->position = $position ?? Task::where('column_id', $column->id)->count();
     }
 
+
+    /** Active watcher user IDs for the task — added to notification recipients. */
+    private function watcherIds(Task $task): array
+    {
+        return $task->watchers()->pluck('users.id')->all();
+    }
 
     private function snapshot(Task $task): array
     {

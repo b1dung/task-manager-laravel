@@ -2,10 +2,11 @@ import { useSiteTimezone } from '@/hooks/useSiteTimezone'
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  X, ExternalLink, MoreHorizontal, Eye, Share2, Lock,
+  X, ExternalLink, MoreHorizontal, Eye, EyeOff, Share2, Lock,
   Plus, ChevronDown, ChevronRight, Bold, List, Code2,
   Link2, Check, Calendar, Flag, User, Tag,
   Zap, GitBranch, AlignLeft, CheckSquare, Trash2, Pencil,
@@ -120,10 +121,13 @@ interface Props {
   open: boolean
   onClose: () => void
   onOpenTask?: (taskId: string) => void
+  /** 'modal' = overlay dialog (default); 'page' = full-page Jira-style view. */
+  variant?: 'modal' | 'page'
 }
 
-export function TaskDetailModal({ task, taskId, projectId, projectKey = 'TASK', open, onClose, onOpenTask }: Props) {
+export function TaskDetailModal({ task, taskId, projectId, projectKey = 'TASK', open, onClose, onOpenTask, variant = 'modal' }: Props) {
   const { t: tr } = useTranslation()
+  const navigate = useNavigate()
   const qc = useQueryClient()
   const toast = useToast()
   const permissions = usePermissions()
@@ -222,7 +226,8 @@ export function TaskDetailModal({ task, taskId, projectId, projectKey = 'TASK', 
   })
 
   useEffect(() => {
-    if (!open) return
+    // Page variant lives inside the app layout — don't trap Escape or lock body scroll.
+    if (!open || variant === 'page') return
     const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     document.addEventListener('keydown', handler)
     document.body.style.overflow = 'hidden'
@@ -230,7 +235,7 @@ export function TaskDetailModal({ task, taskId, projectId, projectKey = 'TASK', 
       document.removeEventListener('keydown', handler)
       document.body.style.overflow = ''
     }
-  }, [open, onClose])
+  }, [open, onClose, variant])
 
   if (!open) return null
 
@@ -238,49 +243,36 @@ export function TaskDetailModal({ task, taskId, projectId, projectKey = 'TASK', 
     ? `${projectKey}-${t.taskNumber}`
     : t ? `${projectKey}-${(t.position ?? 0) + 1}` : '…'
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={onClose} />
+  const inner = (
+    <>
+      {/* Header — 56px height, 24px horizontal padding */}
+      <DetailHeader
+        displayId={taskDisplayId}
+        parentTask={t?.parentTask ?? null}
+        projectKey={projectKey}
+        projectId={projectId}
+        taskId={t?.id ?? null}
+        watcherCount={t?.watcherCount ?? 0}
+        isWatching={t?.isWatching ?? false}
+        onClose={onClose}
+        onOpenParent={onOpenTask}
+        onDelete={t && canDeleteTask ? () => setConfirmAction('delete') : undefined}
+        onArchive={t && canArchiveTask ? () => setConfirmAction('archive') : undefined}
+        onOpenFullPage={variant === 'modal' && t ? () => navigate(`/projects/${projectId}/tasks/${t.id}`) : undefined}
+      />
 
-      {/* Panel — responsive sizing per spec */}
-      <div
-        data-testid="task-detail-modal"
-        className={cn(
-          'relative flex flex-col border border-border bg-bg-surface shadow-app-lg overflow-hidden animate-modal-enter',
-          // mobile/tablet: full screen
-          'w-screen h-screen rounded-none',
-          // ≥1024px: 92vw × 88vh
-          'lg:w-[92vw] lg:h-[88vh] lg:rounded-lg',
-          // ≥1280px: min(1200px,90vw) × min(860px,90vh)
-          'xl:w-[min(1200px,90vw)] xl:h-[min(860px,90vh)] xl:max-w-modal-fhd',
-          // ≥1536px (2K+): min(1400px,88vw) × min(920px,88vh)
-          '2xl:w-[min(1400px,88vw)] 2xl:h-[min(920px,88vh)] 2xl:max-w-modal-2k',
-        )}
-      >
-        {/* Header — 56px height, 24px horizontal padding */}
-        <DetailHeader
-          displayId={taskDisplayId}
-          parentTask={t?.parentTask ?? null}
-          projectKey={projectKey}
-          onClose={onClose}
-          onOpenParent={onOpenTask}
-          onDelete={t && canDeleteTask ? () => setConfirmAction('delete') : undefined}
-          onArchive={t && canArchiveTask ? () => setConfirmAction('archive') : undefined}
-        />
-
-        {/* Loading overlay while fetching subtask */}
-        {isFetchingTask && !t && (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-3 text-fg-muted">
-              <div className="w-8 h-8 rounded-full border-2 border-accent border-t-transparent animate-spin" />
-              <span className="text-sm">{tr('taskDetail.loading')}</span>
-            </div>
+      {/* Loading overlay while fetching subtask */}
+      {isFetchingTask && !t && (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3 text-fg-muted">
+            <div className="w-8 h-8 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+            <span className="text-sm">{tr('taskDetail.loading')}</span>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Body: left + right — only when task data available */}
-        {t && <div className="flex flex-1 min-h-0">
+      {/* Body: left + right — only when task data available */}
+      {t && <div className="flex flex-1 min-h-0">
           {/* Left column — scrollable, 40px horizontal / 32px vertical padding */}
           <div className="flex-1 min-w-0 overflow-y-auto scrollbar-thin px-10 py-8 space-y-5">
             {/* Title */}
@@ -343,8 +335,11 @@ export function TaskDetailModal({ task, taskId, projectId, projectKey = 'TASK', 
             onUpdate={updateTask}
           />
         </div>}
-      </div>
+    </>
+  )
 
+  const dialogs = (
+    <>
       <ConfirmDialog
         open={confirmAction === 'delete'}
         onClose={() => setConfirmAction(null)}
@@ -366,20 +361,229 @@ export function TaskDetailModal({ task, taskId, projectId, projectKey = 'TASK', 
         danger={false}
         loading={archivingTask}
       />
+    </>
+  )
+
+  // Full-page Jira-style view — fills the app layout content area, no overlay.
+  if (variant === 'page') {
+    return (
+      <>
+        <div data-testid="task-detail-page" className="flex flex-col h-full overflow-hidden bg-bg-surface">
+          {inner}
+        </div>
+        {dialogs}
+      </>
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={onClose} />
+
+      {/* Panel — responsive sizing per spec */}
+      <div
+        data-testid="task-detail-modal"
+        className={cn(
+          'relative flex flex-col border border-border bg-bg-surface shadow-app-lg overflow-hidden animate-modal-enter',
+          // mobile/tablet: full screen
+          'w-screen h-screen rounded-none',
+          // ≥1024px: 92vw × 88vh
+          'lg:w-[92vw] lg:h-[88vh] lg:rounded-lg',
+          // ≥1280px: min(1200px,90vw) × min(860px,90vh)
+          'xl:w-[min(1200px,90vw)] xl:h-[min(860px,90vh)] xl:max-w-modal-fhd',
+          // ≥1536px (2K+): min(1400px,88vw) × min(920px,88vh)
+          '2xl:w-[min(1400px,88vw)] 2xl:h-[min(920px,88vh)] 2xl:max-w-modal-2k',
+        )}
+      >
+        {inner}
+      </div>
+
+      {dialogs}
     </div>
+  )
+}
+
+// ─── Watch Button (Jira-style watchers) ──────────────────────────────────────
+
+function WatchButton({ projectId, taskId, initialCount, initialWatching }: {
+  projectId: string; taskId: string | null; initialCount: number; initialWatching: boolean
+}) {
+  const { t: tr } = useTranslation()
+  const qc = useQueryClient()
+  const toast = useToast()
+  const meId = useAuthStore((s) => s.user?.id)
+  const [open, setOpen] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [search, setSearch] = useState('')
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const [pos, setPos] = useState({ top: 0, right: 0 })
+
+  const watchersQuery = useQuery({
+    queryKey: ['watchers', projectId, taskId],
+    queryFn: () => tasksApi.listWatchers(projectId, taskId!),
+    enabled: open && !!taskId,
+  })
+  const { data: members = [] } = useQuery({
+    queryKey: ['members', projectId],
+    queryFn: () => membersApi.list(projectId),
+    enabled: open && adding && !!projectId,
+  })
+
+  const watchers = watchersQuery.data
+  const count = watchers ? watchers.length : initialCount
+  const watching = watchers ? watchers.some((w) => w.id === meId) : initialWatching
+
+  const applyList = (list: TaskUser[]) => {
+    qc.setQueryData(['watchers', projectId, taskId], list)
+    // Refresh the task payload so header count/isWatching reseed (and other pages sync).
+    if (taskId) qc.invalidateQueries({ queryKey: ['task', projectId, taskId] })
+  }
+  const watchMut = useMutation({
+    mutationFn: (userId?: string) => tasksApi.watch(projectId, taskId!, userId),
+    onSuccess: applyList,
+    onError: () => toast.error(tr('taskDetail.updateFailed')),
+  })
+  const unwatchMut = useMutation({
+    mutationFn: (userId: string) => tasksApi.unwatch(projectId, taskId!, userId),
+    onSuccess: applyList,
+    onError: () => toast.error(tr('taskDetail.updateFailed')),
+  })
+
+  const toggle = () => {
+    if (!taskId) return
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      setPos({ top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) })
+    }
+    setOpen((v) => !v)
+  }
+
+  const watcherIds = new Set((watchers ?? []).map((w) => w.id))
+  const q = search.trim().toLowerCase()
+  const addable = members.filter((m) => !watcherIds.has(m.userId) && m.user.fullName.toLowerCase().includes(q))
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        onClick={toggle}
+        disabled={!taskId}
+        title={tr('taskDetail.watch')}
+        className={cn(
+          'h-7 px-1.5 flex items-center gap-1 rounded-md transition-colors disabled:opacity-50',
+          watching ? 'text-accent hover:bg-accent/10' : 'text-fg-subtle hover:text-fg hover:bg-bg-subtle',
+        )}
+      >
+        <Eye className="w-3.5 h-3.5" />
+        {count > 0 && <span className="text-xs font-medium tabular-nums">{count}</span>}
+      </button>
+
+      {open && taskId && createPortal(
+        <>
+          <div className="fixed inset-0 z-[9998]" onClick={() => { setOpen(false); setAdding(false) }} />
+          <div
+            className="fixed z-[9999] w-72 rounded-lg border border-border bg-bg-surface shadow-app-lg overflow-hidden"
+            style={{ top: pos.top, right: pos.right }}
+          >
+            <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border">
+              <span className="text-xs font-semibold text-fg">{tr('taskDetail.watchers')} · {count}</span>
+              <button
+                onClick={() => (watching ? unwatchMut.mutate(meId!) : watchMut.mutate(undefined))}
+                disabled={watchMut.isPending || unwatchMut.isPending || !meId}
+                className={cn(
+                  'inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors disabled:opacity-50',
+                  watching ? 'border border-border text-fg-muted hover:bg-bg-subtle' : 'bg-accent text-white hover:bg-accent/90',
+                )}
+              >
+                {watching
+                  ? <><EyeOff className="w-3 h-3" /> {tr('taskDetail.stopWatching')}</>
+                  : <><Eye className="w-3 h-3" /> {tr('taskDetail.startWatching')}</>}
+              </button>
+            </div>
+
+            <div className="max-h-56 overflow-y-auto scrollbar-thin py-1">
+              {watchersQuery.isLoading ? (
+                <div className="px-3 py-3 text-xs text-fg-subtle">{tr('taskDetail.loading')}</div>
+              ) : watchers && watchers.length > 0 ? (
+                watchers.map((w) => (
+                  <div key={w.id} className="group flex items-center gap-2 px-3 py-1.5 hover:bg-bg-subtle">
+                    <Avatar name={w.fullName} avatarUrl={w.avatarUrl} size="xs" />
+                    <span className="text-xs text-fg truncate flex-1">{w.fullName}{w.id === meId && ` (${tr('common.you')})`}</span>
+                    <button
+                      onClick={() => unwatchMut.mutate(w.id)}
+                      className="opacity-0 group-hover:opacity-100 text-fg-subtle hover:text-danger transition"
+                      title={tr('taskDetail.removeWatcher')}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="px-3 py-3 text-xs text-fg-subtle">{tr('taskDetail.watchersEmpty')}</div>
+              )}
+            </div>
+
+            <div className="border-t border-border">
+              {!adding ? (
+                <button
+                  onClick={() => setAdding(true)}
+                  className="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-fg-muted hover:bg-bg-subtle transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" /> {tr('taskDetail.addWatcher')}
+                </button>
+              ) : (
+                <div className="p-2">
+                  <input
+                    autoFocus
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder={tr('taskDetail.searchMembers')}
+                    className="w-full h-8 rounded-md border border-border bg-bg-elevated px-2 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-accent mb-1"
+                  />
+                  <div className="max-h-40 overflow-y-auto scrollbar-thin">
+                    {addable.length === 0 ? (
+                      <div className="px-2 py-2 text-xs text-fg-subtle">{tr('taskDetail.noMembersToAdd')}</div>
+                    ) : (
+                      addable.map((m) => (
+                        <button
+                          key={m.userId}
+                          onClick={() => { watchMut.mutate(m.userId); setSearch('') }}
+                          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-bg-subtle transition-colors text-left"
+                        >
+                          <Avatar name={m.user.fullName} avatarUrl={m.user.avatarUrl} size="xs" />
+                          <span className="text-xs text-fg truncate">{m.user.fullName}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </>,
+        document.body,
+      )}
+    </>
   )
 }
 
 // ─── Detail Header ────────────────────────────────────────────────────────────
 
-function DetailHeader({ displayId, parentTask, projectKey = 'TASK', onClose, onOpenParent, onDelete, onArchive }: {
+function DetailHeader({ displayId, parentTask, projectKey = 'TASK', projectId, taskId, watcherCount = 0, isWatching = false, onClose, onOpenParent, onDelete, onArchive, onOpenFullPage }: {
   displayId: string
   parentTask: Task | null | undefined
   projectKey?: string
+  projectId: string
+  taskId: string | null
+  watcherCount?: number
+  isWatching?: boolean
   onClose: () => void
   onOpenParent?: (taskId: string) => void
   onDelete?: () => void
   onArchive?: () => void
+  /** When set, renders the "open full page" button (modal variant only). */
+  onOpenFullPage?: () => void
 }) {
   const { t: tr } = useTranslation()
   const toast = useToast()
@@ -425,12 +629,12 @@ function DetailHeader({ displayId, parentTask, projectKey = 'TASK', onClose, onO
 
       {/* Actions */}
       <div className="flex items-center gap-0.5">
-        <button
-          title={tr('taskDetail.watch')}
-          className="h-7 w-7 flex items-center justify-center rounded-md text-fg-subtle hover:text-fg hover:bg-bg-subtle transition-colors"
-        >
-          <Eye className="w-3.5 h-3.5" />
-        </button>
+        <WatchButton
+          projectId={projectId}
+          taskId={taskId}
+          initialCount={watcherCount}
+          initialWatching={isWatching}
+        />
         <button
           title={tr('taskDetail.share')}
           className="h-7 w-7 flex items-center justify-center rounded-md text-fg-subtle hover:text-fg hover:bg-bg-subtle transition-colors"
@@ -454,12 +658,15 @@ function DetailHeader({ displayId, parentTask, projectKey = 'TASK', onClose, onO
           ]}
         />
 
-        <button
-          title={tr('taskDetail.openFullPage')}
-          className="h-7 w-7 flex items-center justify-center rounded-md text-fg-subtle hover:text-fg hover:bg-bg-subtle transition-colors"
-        >
-          <ExternalLink className="w-3.5 h-3.5" />
-        </button>
+        {onOpenFullPage && (
+          <button
+            title={tr('taskDetail.openFullPage')}
+            onClick={onOpenFullPage}
+            className="h-7 w-7 flex items-center justify-center rounded-md text-fg-subtle hover:text-fg hover:bg-bg-subtle transition-colors"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+          </button>
+        )}
 
         <button
           title={tr('taskDetail.close')}
@@ -1000,6 +1207,8 @@ function SubtasksSection({ task, projectId, projectKey = 'TASK', onSubtaskClick 
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['task', projectId, task.id] })
       qc.invalidateQueries({ queryKey: ['tasks', projectId] })
+      // Refresh the All/History timeline so the "created subtask" entry shows up.
+      qc.invalidateQueries({ queryKey: ['activity', projectId, 'task', task.id] })
       setNewTitle('')
       setAdding(false)
     },
@@ -1695,6 +1904,9 @@ function HistoryItem({ log, projectId }: { log: ActivityLog; projectId: string }
     const isTotal = !('hours' in nv)
     const key = isTotal ? (isQaLog ? 'histLoggedTotalQa' : 'histLoggedTotal') : (isQaLog ? 'histLoggedQa' : 'histLogged')
     actionText = tr('taskDetail.' + key, { time: formatTimeHours(amount || 0) })
+  } else if (!old && typeof nv.subtaskCreated === 'string') {
+    // Subtask creation is logged on the parent as action 'updated' + a subtaskCreated marker.
+    actionText = tr('taskDetail.histSubtaskCreated', { title: nv.subtaskCreated })
   }
   const note = typeof nv.note === 'string' && nv.note.trim() ? nv.note.trim() : null
 
@@ -1797,6 +2009,52 @@ function WorkLogTab({ task, onUpdate }: { task: Task; onUpdate: (dto: UpdateTask
   )
 }
 
+// ─── Note (free-form, exported as the "Note" column) ──────────────────────────
+
+function NoteSection({ task, onUpdate }: { task: Task; onUpdate: (dto: UpdateTaskDto) => void }) {
+  const { t: tr } = useTranslation()
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(task.note ?? '')
+
+  // Re-sync when switching tasks or when the note changes elsewhere (realtime).
+  useEffect(() => { setValue(task.note ?? '') }, [task.id, task.note])
+
+  const commit = () => {
+    setEditing(false)
+    const next = value.trim()
+    if (next !== (task.note ?? '')) onUpdate({ note: next || null })
+  }
+
+  if (editing) {
+    return (
+      <textarea
+        autoFocus
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') { setValue(task.note ?? ''); setEditing(false) }
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); commit() }
+        }}
+        rows={4}
+        placeholder={tr('taskDetail.notePlaceholder')}
+        className="w-full rounded-lg border border-border bg-bg-subtle px-2.5 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent placeholder:text-fg-muted resize-y"
+      />
+    )
+  }
+
+  return (
+    <button
+      onClick={() => setEditing(true)}
+      className="w-full text-left text-sm rounded-lg border border-transparent hover:border-border hover:bg-bg-subtle px-2.5 py-2 transition-colors min-h-[2.25rem]"
+    >
+      {task.note
+        ? <span className="text-fg whitespace-pre-wrap break-words">{task.note}</span>
+        : <span className="text-fg-muted">{tr('taskDetail.notePlaceholder')}</span>}
+    </button>
+  )
+}
+
 // ─── Right Column ─────────────────────────────────────────────────────────────
 
 function RightColumn({ task, projectId, projectKey = 'TASK', onUpdate }: {
@@ -1805,6 +2063,7 @@ function RightColumn({ task, projectId, projectKey = 'TASK', onUpdate }: {
   const { t: tr } = useTranslation()
   const [detailsOpen, setDetailsOpen] = useState(true)
   const [devOpen, setDevOpen] = useState(false)
+  const [noteOpen, setNoteOpen] = useState(true)
 
   const { data: members = [] } = useQuery({
     queryKey: ['members', projectId],
@@ -1921,6 +2180,15 @@ function RightColumn({ task, projectId, projectKey = 'TASK', onUpdate }: {
         onToggle={() => setDevOpen(v => !v)}
       >
         <CreateBranchPanel task={task} projectKey={projectKey} />
+      </CollapsibleSection>
+
+      {/* Note — exported as the "Note" column in the tasks report */}
+      <CollapsibleSection
+        title={tr('taskDetail.note')}
+        open={noteOpen}
+        onToggle={() => setNoteOpen(v => !v)}
+      >
+        <NoteSection task={task} onUpdate={onUpdate} />
       </CollapsibleSection>
 
       {/* Footer */}

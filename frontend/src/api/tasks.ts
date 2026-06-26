@@ -40,6 +40,7 @@ export interface Task {
   sprintId: string | null
   title: string
   description: string | null
+  note: string | null
   type: string
   priority: string
   status: string
@@ -64,6 +65,8 @@ export interface Task {
   subtaskCount?: number
   doneSubtaskCount?: number
   subtasksPreview?: SubtaskPreview[]
+  watcherCount?: number
+  isWatching?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -91,6 +94,7 @@ export interface CreateTaskDto {
 export interface UpdateTaskDto {
   title?: string
   description?: string
+  note?: string | null
   type?: string
   priority?: string
   status?: string
@@ -130,4 +134,13 @@ export const tasksApi = {
     apiClient.patch<{ success: true; data: Task }>(`/projects/${projectId}/tasks/${id}/move`, dto).then((r) => r.data.data),
   logTime: (projectId: string, id: string, dto: { hours: number; loggedDate?: string; description?: string; isQa?: boolean }) =>
     apiClient.post<{ success: true; data: Task }>(`/projects/${projectId}/tasks/${id}/log-time`, dto).then((r) => r.data.data),
+
+  // ── Watchers (Jira-style) ──
+  listWatchers: (projectId: string, id: string) =>
+    apiClient.get<{ success: true; data: TaskUser[] }>(`/projects/${projectId}/tasks/${id}/watchers`).then((r) => r.data.data),
+  /** Watch the task. Omit userId to watch as the current user, or pass one to add another watcher. */
+  watch: (projectId: string, id: string, userId?: string) =>
+    apiClient.post<{ success: true; data: TaskUser[] }>(`/projects/${projectId}/tasks/${id}/watchers`, userId ? { userId } : {}).then((r) => r.data.data),
+  unwatch: (projectId: string, id: string, userId: string) =>
+    apiClient.delete<{ success: true; data: TaskUser[] }>(`/projects/${projectId}/tasks/${id}/watchers/${userId}`).then((r) => r.data.data),
 }

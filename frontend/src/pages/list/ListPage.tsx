@@ -2,7 +2,7 @@ import { useSiteTimezone } from '@/hooks/useSiteTimezone'
 import { useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, ListTodo, ChevronDown, ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import { tasksApi, type Task, type UpdateTaskDto } from '@/api/tasks'
@@ -11,7 +11,6 @@ import { membersApi, type ProjectMember } from '@/api/members'
 import { projectsApi } from '@/api/projects'
 import { Avatar, EmptyState, Skeleton } from '@/components/ui'
 import { TaskIcon, SubtaskIcon } from '@/components/ui/TaskIcons'
-import { TaskDetailModal } from '@/pages/board/components/TaskDetailModal'
 import { FilterBar } from '@/pages/board/components/FilterBar'
 import { useFilterStore } from '@/stores/useFilterStore'
 import { usePermissions } from '@/hooks/usePermissions'
@@ -139,6 +138,7 @@ function StatusCell({ task, columns, disabled, onPick }: {
 export function ListPage() {
   const { t } = useTranslation()
   const { projectId = '' } = useParams<{ projectId: string }>()
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const qc = useQueryClient()
   const toast = useToast()
@@ -147,7 +147,8 @@ export function ListPage() {
   const canAssign = perms.includes('assign_tasks')
   const canUpdate = perms.includes('update_own_task')
   const { board } = useFilterStore()
-  const [openTaskId, setOpenTaskId] = useState<string | null>(null)
+  // Opening a task from the list goes to the full-page Jira-style view.
+  const openTask = (taskId: string) => navigate(`/projects/${projectId}/tasks/${taskId}`)
 
   const columnFilter = searchParams.get('column')
   const paginationKey = JSON.stringify({ projectId, board, columnFilter })
@@ -240,7 +241,7 @@ export function ListPage() {
                   return (
                     <tr key={tk.id} className="border-t border-border hover:bg-bg-subtle/40">
                       <td className="px-4 py-2.5">
-                        <button onClick={() => setOpenTaskId(tk.id)} className="flex items-center gap-2 min-w-0 text-left group">
+                        <button onClick={() => openTask(tk.id)} className="flex items-center gap-2 min-w-0 text-left group">
                           {tk.parentTaskId ? <SubtaskIcon size={14} /> : <TaskIcon size={14} />}
                           <span className="text-xs font-mono text-fg-subtle shrink-0">{projectKey}-{tk.taskNumber ?? '—'}</span>
                           <span className="font-medium text-fg truncate group-hover:text-accent transition-colors">{tk.title}</span>
@@ -300,16 +301,6 @@ export function ListPage() {
           </div>
         )}
       </div>
-
-      <TaskDetailModal
-        task={null}
-        taskId={openTaskId}
-        projectId={projectId}
-        projectKey={projectKey}
-        open={!!openTaskId}
-        onClose={() => { setOpenTaskId(null); qc.invalidateQueries({ queryKey: ['list-tasks', projectId] }) }}
-        onOpenTask={(id) => setOpenTaskId(id)}
-      />
     </div>
   )
 }

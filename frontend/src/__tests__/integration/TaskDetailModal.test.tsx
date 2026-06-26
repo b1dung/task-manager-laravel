@@ -91,7 +91,7 @@ vi.mock('@/stores/useAuthStore', () => ({
 
 const mockSubtask: Task = {
   id: 'sub-1', projectId: 'proj-1', columnId: 'col-1', sprintId: null,
-  title: 'Existing subtask', description: null, type: 'task', priority: 'low',
+  title: 'Existing subtask', description: null, note: null, type: 'task', priority: 'low',
   status: 'todo', assigneeId: null, reporterId: 'user-1', assignee: null,
   reporter: { id: 'user-1', fullName: 'Alice', email: 'alice@test.com', avatarUrl: null },
   dueDate: null, estimatedHours: null, loggedHours: null,
@@ -102,7 +102,7 @@ const mockSubtask: Task = {
 
 const mockTask: Task = {
   id: 'task-1', projectId: 'proj-1', columnId: 'col-1', sprintId: null,
-  title: 'Original title', description: 'Task description', type: 'task',
+  title: 'Original title', description: 'Task description', note: null, type: 'task',
   priority: 'medium', status: 'todo', assigneeId: null, reporterId: 'user-1',
   assignee: null,
   reporter: { id: 'user-1', fullName: 'Alice', email: 'alice@test.com', avatarUrl: null },
@@ -115,7 +115,7 @@ const mockTask: Task = {
 
 const mockCreatedSubtask: Task = {
   id: 'sub-2', projectId: 'proj-1', columnId: 'col-1', sprintId: null,
-  title: 'New subtask', description: null, type: 'task', priority: 'medium',
+  title: 'New subtask', description: null, note: null, type: 'task', priority: 'medium',
   status: 'todo', assigneeId: null, reporterId: 'user-1', assignee: null,
   reporter: { id: 'user-1', fullName: 'Alice', email: 'alice@test.com', avatarUrl: null },
   dueDate: null, estimatedHours: null, loggedHours: null,

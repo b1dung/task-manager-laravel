@@ -22,6 +22,7 @@ use App\Http\Controllers\SprintController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskLinkController;
 use App\Http\Controllers\UsersController;
+use App\Http\Controllers\WatcherController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\DB;
@@ -205,6 +206,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('tasks/{taskId}/attachments', [AttachmentController::class, 'store']);
         Route::get('tasks/{taskId}/attachments/{id}/download', [AttachmentController::class, 'download']);
         Route::delete('tasks/{taskId}/attachments/{id}', [AttachmentController::class, 'destroy']);
+
+        // ── Task watchers (Jira-style) ──
+        Route::get('tasks/{taskId}/watchers', [WatcherController::class, 'index']);
+        Route::post('tasks/{taskId}/watchers', [WatcherController::class, 'store']);
+        Route::delete('tasks/{taskId}/watchers/{userId}', [WatcherController::class, 'destroy']);
 
         // ── Task links ──
         Route::get('tasks/{taskId}/links', [TaskLinkController::class, 'index']);

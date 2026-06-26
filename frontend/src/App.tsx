@@ -26,6 +26,7 @@ const MyTasksPage = lazyNamed(() => import('@/pages/my-tasks/MyTasksPage'), 'MyT
 const SettingsPage = lazyNamed(() => import('@/pages/settings/SettingsPage'), 'SettingsPage')
 const GeneralSettingsPage = lazyNamed(() => import('@/pages/site-settings/GeneralSettingsPage'), 'GeneralSettingsPage')
 const BoardPage = lazyNamed(() => import('@/pages/board/BoardPage'), 'BoardPage')
+const TaskFullPage = lazyNamed(() => import('@/pages/board/TaskFullPage'), 'TaskFullPage')
 const SummaryPage = lazyNamed(() => import('@/pages/summary/SummaryPage'), 'SummaryPage')
 const ListPage = lazyNamed(() => import('@/pages/list/ListPage'), 'ListPage')
 const CalendarPage = lazyNamed(() => import('@/pages/calendar/CalendarPage'), 'CalendarPage')
@@ -125,6 +126,7 @@ export default function App() {
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/my-tasks" element={<MyTasksPage />} />
           <Route path="/projects/:projectId/tasks" element={<BoardPage />} />
+          <Route path="/projects/:projectId/tasks/:taskId" element={<TaskFullPage />} />
           <Route path="/projects/:projectId/summary" element={<SummaryPage />} />
           <Route path="/projects/:projectId/list" element={<ListPage />} />
           <Route path="/projects/:projectId/calendar" element={<CalendarPage />} />

@@ -87,6 +87,7 @@ npm ci && npm run build
 ## 4. Các bước deploy backend
 
 1. Upload + giải nén zip backend (xoá `vendor/` cũ trước khi giải nén để thay sạch).
+   - **File/avatar user lưu ở `storage/app/uploads/{attachments,avatars}`** (disk `uploads`). Zip chỉ kèm **cấu trúc thư mục** (`.gitignore`), **không kèm file** → giải nén bản update **không bao giờ ghi đè** file đã upload. ⚠ **Tuyệt đối đừng xoá cả `storage/`** khi update (sẽ mất uploads + `.env`). `chmod -R 775 storage` để ghi được.
 2. Tạo `backend/.env` từ mục 2 ở trên → `php artisan key:generate`.
 3. Quyền ghi: `chmod -R 775 storage bootstrap/cache` (đúng owner web).
 4. Import DB (file `.sql`) vào `mintoku_task`, hoặc chạy `php artisan migrate --force` nếu DB trống.

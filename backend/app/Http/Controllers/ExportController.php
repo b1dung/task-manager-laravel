@@ -108,7 +108,7 @@ class ExportController extends Controller
                 $t->assignee?->full_name ?? $t->assignee?->email ?? '',
                 $t->qaAssignee?->full_name ?? $t->qaAssignee?->email ?? '',
                 $t->title,
-                '', '', '', '', // 請求工数 / 実装内容 / メモ / Note
+                '', '', '', $t->note ?? '', // 請求工数 / 実装内容 / メモ / Note (Note = task note field)
                 $this->formatDuration($loggedH),
                 $this->formatDuration($qaH),
                 $this->formatDuration($loggedH + $qaH),
@@ -153,7 +153,9 @@ class ExportController extends Controller
         $sheet->getStyle("A1:{$lastCol}{$lastRow}")->getAlignment()
             ->setVertical(Alignment::VERTICAL_CENTER);
 
-        // Horizontally centre the time columns (R=Time, S=QA time, T=Total).
+        // Horizontally centre the Month column (F) and the time columns (R=Time, S=QA time, T=Total).
+        $sheet->getStyle("F1:F{$lastRow}")->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle("R1:T{$lastRow}")->getAlignment()
             ->setHorizontal(Alignment::HORIZONTAL_CENTER);
 

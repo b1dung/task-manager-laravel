@@ -52,6 +52,7 @@ const baseTask: Task = {
   sprintId: null,
   title: 'Fix login bug',
   description: 'Steps to reproduce...',
+  note: null,
   type: 'bug',
   priority: 'high',
   status: 'in_progress',

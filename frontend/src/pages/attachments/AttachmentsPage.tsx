@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -6,7 +6,7 @@ import {
   Search, Download, Trash2, FileText, FileArchive, Film, Music,
   File as FileIcon, Paperclip, ExternalLink,
 } from 'lucide-react'
-import { attachmentsApi, type ProjectAttachment } from '@/api/attachments'
+import { attachmentsApi, attachmentFilename, type ProjectAttachment } from '@/api/attachments'
 import { projectsApi } from '@/api/projects'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { Avatar, EmptyState, Skeleton } from '@/components/ui'
@@ -52,6 +52,37 @@ function FileTypeIcon({ mime }: { mime: string }) {
   if (mime.startsWith('audio/')) return <Music className={cls} />
   if (categoryOf(mime) === 'document') return <FileText className={cls} />
   return <FileIcon className={cls} />
+}
+
+/** Image attachments need the bearer token, so fetch the blob and show a real thumbnail; fall back to the icon. */
+function AttachmentThumb({ a, projectId }: { a: ProjectAttachment; projectId: string }) {
+  const isImage = a.mimeType.startsWith('image/')
+  const [url, setUrl] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    if (!isImage) return
+    const filename = attachmentFilename(a.fileUrl)
+    if (!filename) { setFailed(true); return }
+    let objectUrl: string | null = null
+    let cancelled = false
+    attachmentsApi.rawByName(projectId, filename).then((blob) => {
+      if (cancelled) return
+      objectUrl = URL.createObjectURL(blob)
+      setUrl(objectUrl)
+    }).catch(() => { if (!cancelled) setFailed(true) })
+    return () => {
+      cancelled = true
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [a.fileUrl, projectId, isImage])
+
+  if (isImage && !failed) {
+    return url
+      ? <img src={url} alt={a.fileName.normalize('NFC')} loading="lazy" className="h-full w-full object-cover" />
+      : <span className="h-full w-full animate-pulse bg-bg-subtle" />
+  }
+  return <span className="text-fg-subtle"><FileTypeIcon mime={a.mimeType} /></span>
 }
 
 export function AttachmentsPage() {
@@ -188,7 +219,7 @@ export function AttachmentsPage() {
                     className="relative flex items-center justify-center h-32 bg-bg-subtle overflow-hidden"
                     title={t('taskDetail.openFile')}
                   >
-                    <span className="text-fg-subtle"><FileTypeIcon mime={a.mimeType} /></span>
+                    <AttachmentThumb a={a} projectId={projectId} />
                     <span className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity rounded bg-black/50 p-1 text-white">
                       <ExternalLink className="w-3 h-3" />
                     </span>

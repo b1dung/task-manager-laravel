@@ -108,4 +108,9 @@ class Task extends Model
     {
         return $this->belongsToMany(Requester::class, 'task_requesters');
     }
+
+    public function watchers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'task_watchers')->withPivot('created_at');
+    }
 }

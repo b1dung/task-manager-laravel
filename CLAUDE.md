@@ -1,5 +1,3 @@
-CODEX sẽ xem lại kết quả đầu ra của bạn khi bạn hoàn thành
-
 # CLAUDE.md
 
 Guidance for working in this repo. Read this before making changes.
@@ -68,6 +66,13 @@ wsl -d Ubuntu bash -lic 'cd ~/projects/crm-camcom-laravel && python3 zip-backend
 
 **PHP version is pinned to 8.3 to match the dev site (`task.vccdev.vn`).** This was the cause of a dev-site 500: composer had resolved deps under the local container's PHP 8.4 → pulled **Symfony 8** (requires PHP ≥ 8.4.1) and baked `>= 80401` into `vendor/composer/platform_check.php`, which runs before Laravel boots and `throw`s a **non-JSON 500 on every route** (incl. `/api/v1/health/live`) on the 8.3 host. Now locked down: `composer.json` has `config.platform.php = "8.3.0"`, both `backend/Dockerfile` + `Dockerfile.prod` are `php:8.3-fpm-alpine`, and `composer.lock`/`vendor/` are re-resolved to **Symfony 7.4** (8.3-compatible, `laravel/framework` stays `^8.3`). **Keep it 8.3** — don't let composer re-resolve under a higher PHP without the platform pin. To re-run composer for this project use the helper image (the runtime image has no `composer` on PATH): `docker build -t crm-composer:latest - < docker/composer.Dockerfile` then `docker run --rm -u 0 -e COMPOSER_ALLOW_SUPERUSER=1 -v "$PWD/backend":/app -w /app crm-composer:latest update`. After any `vendor/` rebuild, confirm `vendor/composer/platform_check.php` still says `>= 80300` before zipping.
 
+## Production go-live (`task.mintoku.vn`)
+
+Shared-hosting layout in `deploy/shared-hosting/`: `laravel/` (app, outside docroot) + `public_html/` (docroot; `index.php` bootstraps `../laravel`). The **production server can't run ANY command** → everything is built locally and uploaded. Full guide + checklist in `UPDATE-PRODUCTION.md`; template `backend/.env.production.example`.
+- **`.env`** lives at `deploy/shared-hosting/laravel/.env` (real secrets there). **`APP_KEY` must be generated locally** (`docker exec … php artisan key:generate --show`) and pasted in — server can't run `key:generate`. No `config:cache`/`route:cache` on the server (app reads `.env` at runtime, which is fine); if a stale `bootstrap/cache/config.php` exists on the server, **delete it** (it overrides `.env`). `public/index.php` was hacked once → always ship the clean stock front controller.
+- **DB**: server can't `migrate` → import a SQL dump. Clean seed dump = create a temp MySQL DB, `migrate --seed` into it (override `-e DB_DATABASE=… -e DB_USERNAME=root -e DB_PASSWORD=root`), `mysqldump` (no `CREATE DATABASE`/`USE`, includes `migrations`), then drop the temp DB. Seed (`DatabaseSeeder`) = 6 roles + 1 owner (`b1dung@sougo-career-vietnam.com` / `@admin123`) + default app_settings; **no business data**.
+- **Realtime = Pusher cloud** (not Reverb). Backend `.env`: `BROADCAST_CONNECTION=pusher` + `PUSHER_APP_*` + `PUSHER_APP_CLUSTER=ap1` (verify cluster in the Pusher dashboard). FE production build reads **`frontend/.env.production`** (`VITE_BROADCASTER=pusher`, `VITE_PUSHER_APP_KEY`, `VITE_PUSHER_CLUSTER`) — Vite auto-loads it for `vite build`; these MUST match the backend key/cluster. Build with `npm run build` then upload `frontend/dist/`. (Don't rely on inline shell env for the build — a `.env.production` file is the reliable way; `VITE_API_URL=/api/v1` is relative so it's host-agnostic.)
+
 ## Frontend (React) — patterns to follow
 
 Layout: `src/api/*.ts` (one typed axios client per domain), `src/pages/<feature>/*`, `src/components/ui` (Button, Avatar, Select, Skeleton, Modal, ConfirmDialog…), `src/hooks`, `src/stores` (zustand), `src/layout` (Sidebar, NotificationsDropdown), `src/lib` (utils, timezones, queryClient), `src/i18n/resources.ts`.
@@ -113,10 +118,26 @@ All datetimes are stored in **UTC** (`config('app.timezone')='UTC'`). Display us
 RBAC: `users.role_id → roles.permissions[]` (catalog in `app/Support/PermissionCatalog.php`). Routes gate with `->middleware('permission:<key>')`; FE with `<RequirePermission permission="…">` + `usePermissions()`/Sidebar `requiresPermission`. Owner & admin roles get most perms incl. `manage_settings`. New permissions must be added to the catalog, the seeder, AND a migration that grants them to existing roles.
 
 ### Exports
-`ExportController::tasksXlsx` (route `GET …/export/tasks/csv`→`/export/tasks/xlsx`, perm `view_reports`) builds a styled `.xlsx` with PhpSpreadsheet: green bold header (`#63d297`), zebra rows (`#e7f9ef`/white), thin borders, 25px (18.75pt) rows, vertical-centered cells, auto-width, real hyperlinks (Link task / Task parent → `{baseUrl}/projects/{pid}/tasks?selectedIssue={id}`), time columns formatted `"22.5h"`, datetimes in the site timezone. FE passes `baseUrl: window.location.origin`.
+Styled `.xlsx` via PhpSpreadsheet (perm `view_reports`): green bold header (`#63d297`), zebra rows (`#e7f9ef`/white), thin borders, vertical-centered, auto-width, real hyperlinks (`{baseUrl}/projects/{pid}/tasks?selectedIssue={id}`), time columns `"22.5h"` via `formatDuration()`, datetimes in the site timezone. FE always passes `baseUrl: window.location.origin`.
+- `ExportController::tasksXlsx` (`GET …/export/tasks/xlsx`): task list. Columns A..T (20) — note **`Reporter` sits after `Company`** (between Company and Assignee), time cols R/S/T. Adding/moving a column shifts `$lastCol` + the time-column alignment range, so keep them in sync.
+- `ExportController::developerReportXlsx` (`GET …/export/developer-report/xlsx?from&to&userId&priority&baseUrl`): styled Developer Report — KPI band + developer leaderboard + task-details table (Calibri font, title band). Reuses `ReportService::developer()` (so `ExportController` injects `ReportService`). FE `reportsApi.exportDeveloperReportXlsx` downloads the blob; the saved filename adds a `yyyyMMdd-HHmmss` timestamp client-side (FE `a.download` overrides the server Content-Disposition name).
+
+### File uploads / storage
+All user uploads live under ONE in-repo folder — disk `uploads` = `storage/app/uploads/` (`backend/config/filesystems.php`):
+- **Attachments** (task files + inline description images): `storage/app/uploads/attachments/<uuid>.<ext>` (`AttachmentController`, `DISK='uploads'`). Served only via authed API (`…/attachments/{id}/download`, `…/attachments/file/{filename}`) — the stored `file_url` `/uploads/attachments/…` is just a reference, not a static path.
+- **Avatars**: `storage/app/uploads/avatars/<uuid>.<ext>` (`UsersController::uploadAvatar`). Public URL `/uploads/avatars/{filename}` is served by the `routes/web.php` route (no `storage:link` needed; nginx `location ~ ^/(api|uploads)` → php-fpm).
+- The two folders are tracked via committed `.gitignore` markers (their contents are git-ignored). **`zip-backend.py` ships the folder structure but EXCLUDES the files** (`storage/app/uploads/*`, keeping `.gitignore`/`.gitkeep`), so a redeploy never carries or overwrites uploaded files. On a prod update: never delete `storage/` (uploads + `.env` live there); `chmod -R 775 storage`. Switching the disk root or to S3 = just change the `uploads` disk in `filesystems.php`.
 
 ### Deep-linking a task
 The board opens a task from `?selectedIssue=<taskId>` and stays in sync with the URL (notification clicks / deep links). When adding new task entry points, navigate to that URL.
+
+### Realtime sync (site-wide)
+**Every page** stays in sync via ONE global provider — do NOT add per-page sockets. `frontend/src/layout/RealtimeSync.tsx` (mounted once in `AppLayout`) subscribes to the active project channel `project.{id}` (projectId parsed from the URL) + the user channel `user.{id}`, and on ANY event invalidates **every React-Query query whose key includes that projectId** (predicate). So a new project-scoped page needs nothing extra to be realtime — just keep `projectId` in its `queryKey`. `usePrivateChannel` (`hooks/useSocket.ts`) is **ref-counted** so the global provider + BoardPage can share `project.{id}` without one's unmount `leave()`-ing the other.
+Backend: every project-scoped mutation broadcasts `ProjectEvent::dispatch($projectId, '<name>', [...])` (`ShouldBroadcastNow`). Events: `task:created|updated|moved|deleted` (incl. archive/unarchive/restore/log-time → `task:updated`), `column|member|sprint|label|requester|attachment|tasklink:changed`, `comment:added|updated|deleted`. Payload can be minimal (FE only invalidates). **When you add a mutating endpoint, dispatch a ProjectEvent** so all pages sync. Broadcaster: local = self-hosted Reverb (`reverb` container, `BROADCAST_CONNECTION=reverb`); production = **Pusher cloud**.
+
+### Comments & invites (gotchas)
+- **Comment replies are nested, not flat.** `CommentController::index` returns only top-level comments (`whereNull('parent_id')`), each with a nested `replies` array (`CommentResource`). The FE must consume `comment.replies` — do NOT rebuild replies by filtering a flat list (they aren't top-level entries, so they'd vanish). Threads are kept one level deep: a reply to a reply attaches to the top-level comment (`replyTo.parentId ?? replyTo.id`).
+- **Invites send email.** `InviteController::create` injects `MailService` and emails the register link to the invitee (wrapped in try/catch so SMTP failure doesn't fail the invite); it still returns `link` + `emailSent` for the admin UI. Mail is only sent for real when `MAIL_*` SMTP is configured (`MAIL_MAILER=log` locally).
 
 ## Conventions
 

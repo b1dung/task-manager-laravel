@@ -126,7 +126,7 @@ class UsersController extends Controller
 
         $file = $request->file('file');
         $stored = Str::uuid().'.'.$file->getClientOriginalExtension();
-        Storage::disk('public')->putFileAs('avatars', $file, $stored);
+        Storage::disk('uploads')->putFileAs('avatars', $file, $stored);
         $user->update(['avatar_url' => '/uploads/avatars/'.$stored]);
 
         return response()->ok(new AppUserResource($user));

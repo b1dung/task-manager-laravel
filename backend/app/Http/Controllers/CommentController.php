@@ -58,7 +58,8 @@ class CommentController extends Controller
         if ($personal) {
             $this->notifications->taskEvent($projectId, $request->user()->id, 'mention', 'comment', $comment->id, 'mentioned you in a comment on "'.$task->title.'"', $personal, [], false);
         }
-        $this->notifications->taskEvent($projectId, $request->user()->id, 'comment_added', 'comment', $comment->id, 'commented on "'.$task->title.'"', [$task->assignee_id, $task->reporter_id], $personal);
+        $watcherIds = $task->watchers()->pluck('users.id')->all();
+        $this->notifications->taskEvent($projectId, $request->user()->id, 'comment_added', 'comment', $comment->id, 'commented on "'.$task->title.'"', [$task->assignee_id, $task->reporter_id, ...$watcherIds], $personal);
         ProjectEvent::dispatch($projectId, 'comment:added', ['taskId' => $taskId, 'comment' => (new CommentResource($comment->load('author')))->resolve()]);
 
         return response()->ok(new CommentResource($comment->load('author')), 201);

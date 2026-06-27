@@ -134,8 +134,17 @@ export function TaskDetailModal({ task, taskId, projectId, projectKey = 'TASK', 
   const canDeleteTask = permissions.includes('approve_task')
   const canArchiveTask = permissions.includes('update_own_task')
   const [tab, setTab] = useState<TabType>('comments')
+  // Bumped by the "Add child task" header button to open + focus the subtask input.
+  const [addSubtaskSignal, setAddSubtaskSignal] = useState(0)
 
   const targetId = task?.id ?? taskId
+  // Reset the add-subtask signal when switching tasks so a stale "open" from one
+  // task doesn't carry over and auto-open the input on every other task.
+  const prevTargetRef = useRef(targetId)
+  if (prevTargetRef.current !== targetId) {
+    prevTargetRef.current = targetId
+    if (addSubtaskSignal !== 0) setAddSubtaskSignal(0)
+  }
 
   // Store side-effect: update store on success so TaskCard re-renders instantly
   const updateTaskInStore = useTaskStore((s) => s.updateTask)
@@ -274,7 +283,7 @@ export function TaskDetailModal({ task, taskId, projectId, projectKey = 'TASK', 
       {/* Body: left + right — only when task data available */}
       {t && <div className="flex flex-1 min-h-0">
           {/* Left column — scrollable, 40px horizontal / 32px vertical padding */}
-          <div className="flex-1 min-w-0 overflow-y-auto scrollbar-thin px-10 py-8 space-y-5">
+          <div className="flex-1 min-w-0 scrollbar-overlay px-10 py-8 space-y-5">
             {/* Title */}
             <TitleEditor task={t} onSave={(title) => updateTask({ title })} />
 
@@ -282,6 +291,7 @@ export function TaskDetailModal({ task, taskId, projectId, projectKey = 'TASK', 
             <div className="flex items-center gap-1.5 -mt-2">
               <button
                 title={tr('taskDetail.addChildTask')}
+                onClick={() => setAddSubtaskSignal((n) => n + 1)}
                 className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-fg-muted border border-border hover:border-accent/50 hover:text-accent transition-colors"
               >
                 <Plus className="w-3 h-3" /> {tr('taskDetail.child')}
@@ -292,7 +302,7 @@ export function TaskDetailModal({ task, taskId, projectId, projectKey = 'TASK', 
             <DescriptionEditor task={t} onSave={(description) => updateTask({ description })} />
 
             {/* Subtasks */}
-            <SubtasksSection task={t} projectId={projectId} projectKey={projectKey} onSubtaskClick={onOpenTask} />
+            <SubtasksSection key={t.id} task={t} projectId={projectId} projectKey={projectKey} onSubtaskClick={onOpenTask} openAddSignal={addSubtaskSignal} />
 
             {/* Linked items */}
             <LinkedItemsSection task={t} projectId={projectId} />
@@ -1318,14 +1328,23 @@ function SubtaskPriorityPicker({ sub, projectId, onUpdate }: {
 
 // ─── Subtasks Section ─────────────────────────────────────────────────────────
 
-function SubtasksSection({ task, projectId, projectKey = 'TASK', onSubtaskClick }: {
-  task: Task; projectId: string; projectKey?: string; onSubtaskClick?: (taskId: string) => void
+function SubtasksSection({ task, projectId, projectKey = 'TASK', onSubtaskClick, openAddSignal = 0 }: {
+  task: Task; projectId: string; projectKey?: string; onSubtaskClick?: (taskId: string) => void; openAddSignal?: number
 }) {
   const { t: tr } = useTranslation()
   const qc = useQueryClient()
   const toast = useToast()
   const [adding, setAdding] = useState(false)
   const [newTitle, setNewTitle] = useState('')
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  // The header "Add child task" button bumps openAddSignal → open + scroll to the input.
+  useEffect(() => {
+    if (openAddSignal > 0) {
+      setAdding(true)
+      rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [openAddSignal])
   const { data: columns = [] } = useQuery({
     queryKey: ['columns', projectId],
     queryFn: () => columnsApi.list(projectId),
@@ -1370,7 +1389,7 @@ function SubtasksSection({ task, projectId, projectKey = 'TASK', onSubtaskClick 
   })
 
   return (
-    <div>
+    <div ref={rootRef}>
       <div className="flex items-center justify-between mb-2">
         <p className="text-sm font-semibold text-fg">{tr('taskDetail.subtasks')}</p>
         <button
@@ -2217,7 +2236,7 @@ function RightColumn({ task, projectId, projectKey = 'TASK', onUpdate }: {
   })
 
   return (
-    <div className="w-[430px] min-w-[430px] shrink-0 border-l border-border overflow-y-auto scrollbar-thin flex flex-col">
+    <div className="w-[430px] min-w-[430px] shrink-0 border-l border-border scrollbar-overlay flex flex-col">
 
       {/* Status + quick actions */}
       <div className="px-5 py-4 border-b border-border space-y-2">
@@ -2513,10 +2532,13 @@ function LabelsField({ task, labels, projectId, onUpdate, variant = 'label' }: {
 }) {
   const { t: tr } = useTranslation()
   const qc = useQueryClient()
+  const toast = useToast()
   const [open, setOpen] = useState(false)
   const [newName, setNewName] = useState('')
   const [newColor, setNewColor] = useState(LABEL_COLORS[5])
   const [creating, setCreating] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null)
   const ref = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -2525,6 +2547,7 @@ function LabelsField({ task, labels, projectId, onUpdate, variant = 'label' }: {
   const labelIds = selected.map(l => l.id)
   const emitIds = (ids: string[]) => onUpdate(isReq ? { requesterIds: ids } : { labelIds: ids })
   const createEntry = isReq ? requestersApi.create : labelsApi.create
+  const deleteEntry = isReq ? requestersApi.delete : labelsApi.delete
   const listQueryKey = isReq ? ['requesters', projectId] : ['labels', projectId]
 
   useEffect(() => {
@@ -2558,6 +2581,24 @@ function LabelsField({ task, labels, projectId, onUpdate, variant = 'label' }: {
     emitIds([...labelIds, created.id])
     setNewName('')
     setCreating(false)
+  }
+
+  const confirmDelete = async () => {
+    const entry = pendingDelete
+    if (!entry) return
+    setDeletingId(entry.id)
+    try {
+      await deleteEntry(projectId, entry.id)
+      // Drop it from this task's selection too, if it was assigned.
+      if (labelIds.includes(entry.id)) emitIds(labelIds.filter(id => id !== entry.id))
+      qc.invalidateQueries({ queryKey: listQueryKey })
+      toast.success(tr('taskDetail.deleteEntrySuccess', { name: entry.name }))
+      setPendingDelete(null)
+    } catch {
+      toast.error(tr('taskDetail.deleteEntryError', { name: entry.name }))
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   return (
@@ -2601,15 +2642,24 @@ function LabelsField({ task, labels, projectId, onUpdate, variant = 'label' }: {
             {labels.map(l => {
               const active = labelIds.includes(l.id)
               return (
-                <button
-                  key={l.id}
-                  onClick={() => toggle(l.id)}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-bg-subtle"
-                >
-                  <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: l.color }} />
-                  <span className="flex-1 text-left text-fg truncate">{l.name}</span>
-                  {active && <Check className="w-3.5 h-3.5 text-accent shrink-0" />}
-                </button>
+                <div key={l.id} className="group/row flex items-center hover:bg-bg-subtle">
+                  <button
+                    onClick={() => toggle(l.id)}
+                    className="flex-1 min-w-0 flex items-center gap-2 px-3 py-1.5 text-sm"
+                  >
+                    <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: l.color }} />
+                    <span className="flex-1 text-left text-fg truncate">{l.name}</span>
+                    {active && <Check className="w-3.5 h-3.5 text-accent shrink-0" />}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setPendingDelete({ id: l.id, name: l.name }) }}
+                    disabled={deletingId === l.id}
+                    title={tr('common.delete')}
+                    className="shrink-0 p-1.5 mr-1 rounded text-fg-muted opacity-0 group-hover/row:opacity-100 hover:text-danger hover:bg-danger/10 transition-opacity disabled:opacity-40"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               )
             })}
           </div>
@@ -2658,6 +2708,17 @@ function LabelsField({ task, labels, projectId, onUpdate, variant = 'label' }: {
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={confirmDelete}
+        loading={!!deletingId}
+        title={tr('common.delete')}
+        message={pendingDelete ? tr('taskDetail.deleteEntryConfirm', { name: pendingDelete.name }) : ''}
+        confirmLabel={tr('common.delete')}
+        cancelLabel={tr('common.cancel')}
+      />
     </div>
   )
 }
